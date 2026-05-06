@@ -1,507 +1,1121 @@
-import React, { useState, type CSSProperties, useEffect } from 'react';
+
+
+import React, {
+  useState,
+  useEffect,
+  type CSSProperties,
+} from 'react';
+
+import { motion } from 'framer-motion';
+
 import axiosInstance from './Axios';
-import { Eye, EyeOff, ArrowRight, Lock, Mail, AlertCircle, Zap } from 'lucide-react';
-import type { MerchantUser, LoginResponse, LoginPayload } from './types/Index';
+
+import {
+  Eye,
+  EyeOff,
+  ArrowRight,
+  Lock,
+  Mail,
+  AlertCircle,
+  Zap,
+  ShieldCheck,
+} from 'lucide-react';
+
+import type {
+  MerchantUser,
+} from './types/Index';
+
 import colors from './colors';
 
-const ERROR_MAP: Record<string, string> = {
-  USER_NOT_FOUND: 'No merchant account found with this email.',
-  INVALID_EMAIL_OR_PASSWORD: 'Invalid email or password.',
-  PASSWORD_LOGIN_NOT_AVAILABLE: 'This account uses social login.',
-  UNAUTHORIZED_ACCESS: 'Access denied. Merchant accounts only.',
-  TOKEN_EXPIRED: 'Session expired. Please login again.',
-  NOT_MERCHANT: 'Access denied. Only merchant accounts can log in here.',
+/* ───────────────────────────────────────────── */
+/* ERROR HELPERS */
+/* ───────────────────────────────────────────── */
+
+const STATUS_MAP: Record<
+  number,
+  string
+> = {
+  400: 'Invalid request.',
+  401:
+    'Invalid email or password.',
+  403:
+    'Access denied. Merchant accounts only.',
+  404:
+    'No merchant account found.',
+  500:
+    'Server error. Try again later.',
 };
 
-const STATUS_MAP: Record<number, string> = {
-  400: 'Invalid request. Please check your details.',
-  401: 'Invalid email or password.',
-  403: 'Access denied. Only merchant accounts can log in here.',
-  404: 'No merchant account found with this email.',
-  500: 'Server error. Please try again later.',
-};
+function getErrorMessage(
+  error: unknown
+): string {
+  if (
+    error &&
+    typeof error === 'object' &&
+    'response' in error
+  ) {
+    const err = error as {
+      response?: {
+        data?: unknown;
+        status?: number;
+      };
+    };
 
-function getErrorMessage(error: unknown): string {
-  if (error && typeof error === 'object' && 'response' in error) {
-    const err = error as { response?: { data?: unknown; status?: number } };
-    const d = err.response?.data;
-    if (typeof d === 'string') {
-      const m = d.match(/Error:\s*([A-Z_]+)/);
-      if (m?.[1] && ERROR_MAP[m[1]]) return ERROR_MAP[m[1]];
-      if (m?.[1]) return m[1].replace(/_/g, ' ').toLowerCase();
+    const d =
+      err.response?.data;
+
+    if (
+      typeof d === 'object' &&
+      d
+    ) {
+      const data =
+        d as Record<
+          string,
+          unknown
+        >;
+
+      if (
+        typeof data.message ===
+        'string'
+      ) {
+        return data.message;
+      }
     }
-    if (d && typeof d === 'object') {
-      const data = d as Record<string, unknown>;
-      if (data.userType && data.userType !== 'merchant')
-        return 'Access denied. Only merchant accounts can log in here.';
-      if (typeof data.message === 'string') return data.message;
-      if (typeof data.error === 'string') return data.error;
+
+    if (
+      err.response?.status
+    ) {
+      return (
+        STATUS_MAP[
+          err.response.status
+        ] ||
+        'Login failed.'
+      );
     }
-    if (err.response?.status) return STATUS_MAP[err.response.status] ?? `Error ${err.response.status}.`;
   }
-  if (error instanceof Error) {
-    if (error.message === 'NOT_MERCHANT') return ERROR_MAP.NOT_MERCHANT;
-    if (error.message.includes('Network')) return 'Network error. Check your connection.';
-  }
-  return 'Login failed. Please try again.';
+
+  return 'Login failed.';
 }
+
+/* ───────────────────────────────────────────── */
+/* PROPS */
+/* ───────────────────────────────────────────── */
 
 interface LoginPageProps {
-  onLogin: (token: string, user: MerchantUser) => void;
+  onLogin: (
+    token: string,
+    user: MerchantUser
+  ) => void;
 }
 
-export default function LoginPage({ onLogin }: LoginPageProps) {
-  const [email, setEmail]       = useState('');
-  const [password, setPassword] = useState('');
-  const [showPass, setShowPass] = useState(false);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState('');
-  const [emailErr, setEmailErr] = useState('');
-  const [passErr, setPassErr]   = useState('');
-  const [mounted, setMounted]   = useState(false);
+/* ───────────────────────────────────────────── */
+/* ANIMATION */
+/* ───────────────────────────────────────────── */
+
+const fadeUp = {
+  hidden: {
+    opacity: 0,
+    y: 30,
+  },
+
+  visible: (
+    delay = 0
+  ) => ({
+    opacity: 1,
+    y: 0,
+
+    transition: {
+      duration: 0.7,
+      delay,
+    },
+  }),
+};
+
+/* ───────────────────────────────────────────── */
+/* MAIN */
+/* ───────────────────────────────────────────── */
+
+export default function LoginPage({
+  onLogin,
+}: LoginPageProps) {
+  const [email, setEmail] =
+    useState('');
+
+  const [
+    password,
+    setPassword,
+  ] = useState('');
+
+  const [
+    showPass,
+    setShowPass,
+  ] = useState(false);
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
+
+  const [error, setError] =
+    useState('');
+
+  const [
+    emailErr,
+    setEmailErr,
+  ] = useState('');
+
+  const [
+    passErr,
+    setPassErr,
+  ] = useState('');
+
+  const [
+    mounted,
+    setMounted,
+  ] = useState(false);
 
   useEffect(() => {
-    setTimeout(() => setMounted(true), 50);
+    setTimeout(
+      () => setMounted(true),
+      100
+    );
   }, []);
 
-  const validate = (): boolean => {
-    let ok = true;
-    if (!email) { setEmailErr('Email is required'); ok = false; }
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setEmailErr('Enter a valid email address'); ok = false; }
-    else setEmailErr('');
-    if (!password) { setPassErr('Password is required'); ok = false; }
-    else if (password.length < 6) { setPassErr('Min 6 characters'); ok = false; }
-    else setPassErr('');
-    return ok;
-  };
+  /* VALIDATION */
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validate()) return;
-    setLoading(true);
-    setError('');
-    try {
-      const res = await axiosInstance.post<LoginResponse>('/users/login', {
-        email, password, userType: 'merchant',
-      });
-      const payload: LoginPayload = res.data?.data ?? (res.data as unknown as LoginPayload);
-      const userType = payload?.user?.userType ?? payload?.merchant?.userType ?? (payload as Record<string,unknown>)?.userType;
-      if (userType && userType !== 'merchant') throw new Error('NOT_MERCHANT');
-      if (payload?.token || payload?.success || (res.data as unknown as { success?: boolean })?.success) {
-        const token = payload?.token ?? payload?.accessToken ?? (res.data as unknown as { token?: string })?.token;
-        const user: MerchantUser = (payload?.user as MerchantUser) ?? (payload?.merchant as MerchantUser) ?? (payload as unknown as MerchantUser);
-        if (!token) throw new Error('Invalid response from server');
-        onLogin(token, user);
+  const validate =
+    (): boolean => {
+      let ok = true;
+
+      if (!email) {
+        setEmailErr(
+          'Email is required'
+        );
+
+        ok = false;
+      } else if (
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+          email
+        )
+      ) {
+        setEmailErr(
+          'Enter valid email'
+        );
+
+        ok = false;
       } else {
-        throw new Error('Invalid response from server');
+        setEmailErr('');
       }
-    } catch (err: unknown) {
-      setError(getErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  };
+
+      if (!password) {
+        setPassErr(
+          'Password is required'
+        );
+
+        ok = false;
+      } else if (
+        password.length < 6
+      ) {
+        setPassErr(
+          'Minimum 6 characters'
+        );
+
+        ok = false;
+      } else {
+        setPassErr('');
+      }
+
+      return ok;
+    };
+
+  /* LOGIN */
+
+  const handleLogin =
+    async (
+      e: React.FormEvent
+    ) => {
+      e.preventDefault();
+
+      if (!validate())
+        return;
+
+      setLoading(true);
+
+      setError('');
+
+      try {
+        const res =
+          await axiosInstance.post(
+            '/users/login',
+            {
+              email,
+              password,
+              userType:
+                'merchant',
+            }
+          );
+
+        console.log(
+          'LOGIN RESPONSE =>',
+          res.data
+        );
+
+        const token =
+          res.data.token;
+
+        const user =
+          res.data.user;
+
+        if (
+          !token ||
+          !user
+        ) {
+          throw new Error(
+            'Invalid response from server'
+          );
+        }
+
+        onLogin(
+          token,
+          user
+        );
+      } catch (err) {
+        console.error(err);
+
+        setError(
+          getErrorMessage(
+            err
+          )
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
 
   return (
     <div style={s.root}>
       <style>{css}</style>
 
-      {/* Animated background */}
-      <div style={s.bgLayer}>
+      {/* BACKGROUND */}
+      <div style={s.bg}>
         <div style={s.orb1} />
+
         <div style={s.orb2} />
-        <div style={s.orb3} />
+
         <div style={s.grid} />
       </div>
 
-      {/* Left panel */}
-      <div style={{ ...s.leftPanel, opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(-40px)', transition: 'all 0.7s cubic-bezier(0.16,1,0.3,1)' }}>
-        <div style={s.brandRow}>
-          <div style={s.logoWrap}>
-            <div style={s.logoInner}>
-              <Zap size={22} color={colors.white} fill={colors.white} />
-            </div>
-            <div style={s.logoPulse} />
+      {/* LEFT */}
+      <motion.div
+        initial="hidden"
+        animate={
+          mounted
+            ? 'visible'
+            : 'hidden'
+        }
+        variants={fadeUp}
+        custom={0}
+        style={s.left}
+      >
+        {/* LOGO */}
+        <motion.div
+          whileHover={{
+            scale: 1.04,
+          }}
+          style={s.logoRow}
+        >
+          <div style={s.logo}>
+            <Zap
+              size={24}
+              color="#fff"
+            />
           </div>
-          <span style={s.brandName}>vervoer</span>
-        </div>
 
-        <div style={s.heroBlock}>
-          <div style={s.heroPill}>
-            <span style={s.heroPillDot} />
+          <span style={s.brand}>
+            vervoer
+          </span>
+        </motion.div>
+
+        {/* HERO */}
+        <div>
+          <motion.div
+            custom={0.2}
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            style={s.heroBadge}
+          >
+            <span
+              style={
+                s.heroDot
+              }
+            />
+
             Merchant Portal
-          </div>
-          <h1 style={s.heroH1}>
-            Power your<br />
-            <span style={s.heroAccent}>business</span><br />
-            effortlessly.
-          </h1>
-          <p style={s.heroSub}>
-            Real-time bookings, earnings tracking, slot management and dry cleaning — unified in one dashboard.
-          </p>
+          </motion.div>
+
+          <motion.h1
+            custom={0.3}
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            style={s.heroTitle}
+          >
+            Grow your
+            <br />
+            business
+            <br />
+            <span
+              style={
+                s.heroAccent
+              }
+            >
+              smarter.
+            </span>
+          </motion.h1>
+
+          <motion.p
+            custom={0.4}
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            style={s.heroSub}
+          >
+            Manage bookings,
+            parking slots,
+            customers,
+            laundry services
+            and analytics —
+            all in one
+            premium dashboard.
+          </motion.p>
         </div>
 
-        <div style={s.statsRow}>
-          {[['24/7', 'Monitoring'], ['99.9%', 'Uptime'], ['3 min', 'Setup']].map(([val, lbl], i) => (
-            <div key={lbl} style={{ ...s.statBox, animationDelay: `${0.2 + i * 0.1}s` }} className="stat-box">
-              <span style={s.statVal}>{val}</span>
-              <span style={s.statLbl}>{lbl}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+        {/* STATS */}
+        <div style={s.stats}>
+          {[
+            [
+              '24/7',
+              'Monitoring',
+            ],
 
-      {/* Right panel */}
-      <div style={{ ...s.rightPanel, opacity: mounted ? 1 : 0, transform: mounted ? 'translateY(0)' : 'translateY(30px)', transition: 'all 0.7s cubic-bezier(0.16,1,0.3,1) 0.15s' }}>
-        <div style={s.card}>
-          <div style={s.cardTop}>
+            [
+              '99.9%',
+              'Uptime',
+            ],
+
+            [
+              '3 min',
+              'Setup',
+            ],
+          ].map(
+            (
+              [v, l],
+              i
+            ) => (
+              <motion.div
+                key={l}
+                whileHover={{
+                  y: -6,
+                  scale: 1.03,
+                }}
+                initial={{
+                  opacity: 0,
+                  y: 20,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                }}
+                transition={{
+                  delay:
+                    0.5 +
+                    i * 0.1,
+                }}
+                style={
+                  s.statCard
+                }
+              >
+                <h3
+                  style={
+                    s.statVal
+                  }
+                >
+                  {v}
+                </h3>
+
+                <p
+                  style={
+                    s.statLbl
+                  }
+                >
+                  {l}
+                </p>
+              </motion.div>
+            )
+          )}
+        </div>
+      </motion.div>
+
+      {/* RIGHT */}
+      <motion.div
+        initial={{
+          opacity: 0,
+          y: 30,
+        }}
+        animate={{
+          opacity: 1,
+          y: 0,
+        }}
+        transition={{
+          duration: 0.7,
+          delay: 0.2,
+        }}
+        style={s.right}
+      >
+        <motion.div
+          whileHover={{
+            y: -4,
+          }}
+          style={s.card}
+        >
+          {/* TOP */}
+          <div
+            style={{
+              marginBottom: 28,
+            }}
+          >
             <div style={s.cardBadge}>
-              <span style={s.cardBadgeDot} />
-              Merchants Only
+              <ShieldCheck
+                size={13}
+              />
+
+              Verified Merchants
             </div>
-            <h2 style={s.cardTitle}>Welcome back</h2>
-            <p style={s.cardSub}>Sign in to your Vervoer merchant account</p>
+
+            <h2 style={s.title}>
+              Welcome Back
+            </h2>
+
+            <p style={s.subtitle}>
+              Sign in to your
+              merchant dashboard
+            </p>
           </div>
 
+          {/* ERROR */}
           {error && (
-            <div style={s.errorBox} className="error-shake">
-              <AlertCircle size={15} color={colors.error} style={{ flexShrink: 0 }} />
-              <span>{error}</span>
-            </div>
+            <motion.div
+              initial={{
+                opacity: 0,
+                y: -10,
+              }}
+              animate={{
+                opacity: 1,
+                y: 0,
+              }}
+              style={s.error}
+            >
+              <AlertCircle
+                size={16}
+              />
+
+              <span>
+                {error}
+              </span>
+            </motion.div>
           )}
 
-          <form onSubmit={handleLogin} noValidate>
-            <div style={s.field}>
-              <label style={s.label}>Email address</label>
-              <div style={s.inputWrap}>
-                <Mail size={15} color={emailErr ? colors.error : colors.gray} style={s.inputIcon} />
+          {/* FORM */}
+          <form
+            onSubmit={
+              handleLogin
+            }
+          >
+            {/* EMAIL */}
+            <div
+              style={
+                s.field
+              }
+            >
+              <label
+                style={
+                  s.label
+                }
+              >
+                Email
+              </label>
+
+              <div
+                style={
+                  s.inputWrap
+                }
+              >
+                <Mail
+                  size={16}
+                  color={
+                    colors.gray
+                  }
+                  style={
+                    s.inputIcon
+                  }
+                />
+
                 <input
                   type="email"
-                  value={email}
-                  onChange={e => { setEmail(e.target.value); setEmailErr(''); }}
                   placeholder="you@company.com"
-                  style={{ ...s.input, ...(emailErr ? s.inputErr : {}) }}
-                  autoComplete="email"
-                  className="form-input"
+                  value={email}
+                  onChange={e => {
+                    setEmail(
+                      e.target
+                        .value
+                    );
+
+                    setEmailErr(
+                      ''
+                    );
+                  }}
+                  style={{
+                    ...s.input,
+
+                    ...(emailErr
+                      ? {
+                          border:
+                            '1px solid #ef4444',
+                        }
+                      : {}),
+                  }}
                 />
               </div>
-              {emailErr && <span style={s.fieldErr}>{emailErr}</span>}
+
+              {emailErr && (
+                <span
+                  style={
+                    s.fieldErr
+                  }
+                >
+                  {emailErr}
+                </span>
+              )}
             </div>
 
-            <div style={s.field}>
-              <div style={s.labelRow}>
-                <label style={s.label}>Password</label>
-                <button type="button" style={s.forgotBtn}
-                  onClick={() => alert('Password reset — wire to your endpoint.')}>
-                  Forgot?
-                </button>
-              </div>
-              <div style={s.inputWrap}>
-                <Lock size={15} color={passErr ? colors.error : colors.gray} style={s.inputIcon} />
+            {/* PASSWORD */}
+            <div
+              style={
+                s.field
+              }
+            >
+              <label
+                style={
+                  s.label
+                }
+              >
+                Password
+              </label>
+
+              <div
+                style={
+                  s.inputWrap
+                }
+              >
+                <Lock
+                  size={16}
+                  color={
+                    colors.gray
+                  }
+                  style={
+                    s.inputIcon
+                  }
+                />
+
                 <input
-                  type={showPass ? 'text' : 'password'}
-                  value={password}
-                  onChange={e => { setPassword(e.target.value); setPassErr(''); }}
+                  type={
+                    showPass
+                      ? 'text'
+                      : 'password'
+                  }
                   placeholder="••••••••"
-                  style={{ ...s.input, paddingRight: 44, ...(passErr ? s.inputErr : {}) }}
-                  autoComplete="current-password"
-                  className="form-input"
+                  value={
+                    password
+                  }
+                  onChange={e => {
+                    setPassword(
+                      e.target
+                        .value
+                    );
+
+                    setPassErr(
+                      ''
+                    );
+                  }}
+                  style={{
+                    ...s.input,
+                    paddingRight: 48,
+
+                    ...(passErr
+                      ? {
+                          border:
+                            '1px solid #ef4444',
+                        }
+                      : {}),
+                  }}
                 />
-                <button type="button" onClick={() => setShowPass(p => !p)} style={s.eyeBtn}>
-                  {showPass ? <EyeOff size={15} color={colors.gray} /> : <Eye size={15} color={colors.gray} />}
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowPass(
+                      p => !p
+                    )
+                  }
+                  style={
+                    s.eyeBtn
+                  }
+                >
+                  {showPass ? (
+                    <EyeOff
+                      size={16}
+                      color={
+                        colors.gray
+                      }
+                    />
+                  ) : (
+                    <Eye
+                      size={16}
+                      color={
+                        colors.gray
+                      }
+                    />
+                  )}
                 </button>
               </div>
-              {passErr && <span style={s.fieldErr}>{passErr}</span>}
+
+              {passErr && (
+                <span
+                  style={
+                    s.fieldErr
+                  }
+                >
+                  {passErr}
+                </span>
+              )}
             </div>
 
-            <button
+            {/* BUTTON */}
+            <motion.button
+              whileHover={{
+                scale: 1.02,
+                y: -2,
+              }}
+              whileTap={{
+                scale: 0.98,
+              }}
               type="submit"
-              disabled={loading}
-              style={{ ...s.submitBtn, ...(loading ? s.submitDisabled : {}) }}
-              className={loading ? '' : 'submit-btn'}
+              disabled={
+                loading
+              }
+              style={
+                s.submit
+              }
             >
               {loading ? (
-                <span style={s.spinner} />
+                <span
+                  style={
+                    s.spinner
+                  }
+                />
               ) : (
                 <>
-                  <span>Sign in to Vervoer</span>
-                  <ArrowRight size={16} />
+                  <span>
+                    Sign in
+                  </span>
+
+                  <ArrowRight
+                    size={18}
+                  />
                 </>
               )}
-            </button>
+            </motion.button>
           </form>
 
-          <div style={s.lockNote}>
-            <span>🔒</span>
-            <span>Exclusive access for verified merchants only</span>
+          {/* FOOT */}
+          <div style={s.footer}>
+            🔒 Secure merchant
+            login
           </div>
-
-          <p style={s.foot}>
-            Need an account?{' '}
-            <a href="mailto:support@vervoer.com" style={s.footLink}>Contact support</a>
-          </p>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }
 
+/* CSS */
+
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@400;500;600;700&display=swap');
-  @keyframes spin { to { transform: rotate(360deg); } }
-  @keyframes float1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(30px,-20px) scale(1.05); } }
-  @keyframes float2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-20px,30px) scale(1.08); } }
-  @keyframes float3 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(15px,15px); } }
-  @keyframes pulse-ring { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(2.2); opacity: 0; } }
-  @keyframes fadeSlideUp { from { opacity:0; transform: translateY(16px); } to { opacity:1; transform: translateY(0); } }
-  @keyframes error-shake { 0%,100% { transform: translateX(0); } 20%,60% { transform: translateX(-6px); } 40%,80% { transform: translateX(6px); } }
-  .stat-box { animation: fadeSlideUp 0.5s ease both; }
-  .error-shake { animation: error-shake 0.4s ease; }
-  .form-input:focus { outline: none !important; border-color: ${colors.primary} !important; box-shadow: 0 0 0 3px rgba(255,148,1,0.15) !important; }
-  .submit-btn:hover { background: ${colors.primaryDark} !important; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(255,148,1,0.35) !important; }
-  .submit-btn:active { transform: translateY(0); }
-  * { box-sizing: border-box; }
-  button:focus { outline: none; }
+*{
+box-sizing:border-box;
+}
+
+body{
+margin:0;
+}
+
+@keyframes spin{
+to{
+transform:rotate(360deg);
+}
+}
+
+input:focus{
+outline:none;
+border-color:#ff9500!important;
+box-shadow:0 0 0 4px rgba(255,149,0,0.12);
+}
 `;
 
-const s: Record<string, CSSProperties> = {
+/* STYLES */
+
+const s: Record<
+  string,
+  CSSProperties
+> = {
   root: {
     minHeight: '100vh',
     display: 'flex',
-    fontFamily: "'DM Sans', sans-serif",
-    background: colors.sidebarBg,
-    position: 'relative',
+    background:
+      '#06070b',
     overflow: 'hidden',
+    position: 'relative',
+    fontFamily:
+      'Inter, sans-serif',
   },
-  bgLayer: {
+
+  bg: {
     position: 'fixed',
     inset: 0,
-    pointerEvents: 'none',
-    zIndex: 0,
   },
+
   orb1: {
-    position: 'absolute', top: '-10%', left: '-5%',
-    width: 500, height: 500, borderRadius: '50%',
-    background: 'radial-gradient(circle, rgba(255,148,1,0.18) 0%, transparent 70%)',
-    animation: 'float1 8s ease-in-out infinite',
+    position: 'absolute',
+    top: -180,
+    left: -120,
+    width: 500,
+    height: 500,
+    borderRadius: '50%',
+    background:
+      'rgba(255,149,0,0.12)',
+    filter:
+      'blur(120px)',
   },
+
   orb2: {
-    position: 'absolute', bottom: '-15%', right: '-5%',
-    width: 600, height: 600, borderRadius: '50%',
-    background: 'radial-gradient(circle, rgba(255,148,1,0.1) 0%, transparent 70%)',
-    animation: 'float2 10s ease-in-out infinite',
+    position: 'absolute',
+    bottom: -200,
+    right: -150,
+    width: 600,
+    height: 600,
+    borderRadius: '50%',
+    background:
+      'rgba(255,149,0,0.08)',
+    filter:
+      'blur(140px)',
   },
-  orb3: {
-    position: 'absolute', top: '40%', left: '30%',
-    width: 300, height: 300, borderRadius: '50%',
-    background: 'radial-gradient(circle, rgba(255,148,1,0.06) 0%, transparent 70%)',
-    animation: 'float3 6s ease-in-out infinite',
-  },
+
   grid: {
-    position: 'absolute', inset: 0,
-    backgroundImage: `linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)`,
-    backgroundSize: '48px 48px',
+    position: 'absolute',
+    inset: 0,
+    backgroundImage:
+      'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
+    backgroundSize:
+      '48px 48px',
   },
-  leftPanel: {
+
+  left: {
     flex: 1,
-    padding: '52px 56px',
+    padding:
+      '56px 64px',
     display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'space-between',
+    flexDirection:
+      'column',
+    justifyContent:
+      'space-between',
     position: 'relative',
     zIndex: 1,
   },
-  brandRow: {
-    display: 'flex', alignItems: 'center', gap: 14,
+
+  logoRow: {
+    display: 'flex',
+    alignItems:
+      'center',
+    gap: 14,
   },
-  logoWrap: {
-    position: 'relative', width: 48, height: 48,
+
+  logo: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
+    background:
+      'linear-gradient(135deg,#ff9500,#ff6a00)',
+    display: 'flex',
+    alignItems:
+      'center',
+    justifyContent:
+      'center',
   },
-  logoInner: {
-    width: 48, height: 48, borderRadius: 16,
-    background: `linear-gradient(135deg, ${colors.primary}, ${colors.primaryDark})`,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    boxShadow: `0 8px 24px rgba(255,148,1,0.4)`,
-    position: 'relative', zIndex: 1,
+
+  brand: {
+    fontSize: 30,
+    fontWeight: 900,
+    color: '#fff',
   },
-  logoPulse: {
-    position: 'absolute', inset: 0, borderRadius: 16,
-    border: `2px solid ${colors.primary}`,
-    animation: 'pulse-ring 2s ease-out infinite',
+
+  heroBadge: {
+    display: 'inline-flex',
+    alignItems:
+      'center',
+    gap: 8,
+    background:
+      'rgba(255,149,0,0.12)',
+    border:
+      '1px solid rgba(255,149,0,0.2)',
+    borderRadius: 999,
+    padding:
+      '8px 16px',
+    color: '#ff9500',
+    fontSize: 12,
+    fontWeight: 700,
+    marginBottom: 28,
   },
-  brandName: {
-    color: colors.white,
-    fontFamily: "'Syne', sans-serif",
-    fontWeight: 800,
-    fontSize: 28,
-    letterSpacing: '-1px',
+
+  heroDot: {
+    width: 7,
+    height: 7,
+    borderRadius:
+      '50%',
+    background:
+      '#ff9500',
   },
-  heroBlock: {
-    flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingBottom: 48,
+
+  heroTitle: {
+    margin:
+      '0 0 24px',
+    color: '#fff',
+    fontSize: 68,
+    lineHeight: 1,
+    fontWeight: 900,
   },
-  heroPill: {
-    display: 'inline-flex', alignItems: 'center', gap: 8,
-    background: 'rgba(255,148,1,0.12)',
-    border: '1px solid rgba(255,148,1,0.25)',
-    color: colors.primary,
-    borderRadius: 24, padding: '6px 16px',
-    fontSize: 12, fontWeight: 700, letterSpacing: '0.8px',
-    textTransform: 'uppercase' as const,
-    marginBottom: 28, width: 'fit-content',
-  },
-  heroPillDot: {
-    width: 6, height: 6, borderRadius: '50%',
-    background: colors.primary, display: 'inline-block',
-    boxShadow: `0 0 6px ${colors.primary}`,
-  },
-  heroH1: {
-    color: colors.white,
-    fontFamily: "'Syne', sans-serif",
-    fontSize: 58, fontWeight: 800, lineHeight: 1.08,
-    letterSpacing: '-2.5px', margin: '0 0 24px',
-  },
+
   heroAccent: {
-    color: colors.primary,
-    textShadow: `0 0 40px rgba(255,148,1,0.4)`,
+    color: '#ff9500',
   },
+
   heroSub: {
-    color: 'rgba(255,255,255,0.45)',
-    fontSize: 16, lineHeight: 1.7, maxWidth: 380, margin: 0,
+    maxWidth: 500,
+    color:
+      'rgba(255,255,255,0.55)',
+    fontSize: 18,
+    lineHeight: 1.8,
   },
-  statsRow: {
-    display: 'flex', gap: 16,
-    borderTop: '1px solid rgba(255,255,255,0.07)',
-    paddingTop: 36,
+
+  stats: {
+    display: 'flex',
+    gap: 18,
   },
-  statBox: {
-    flex: 1, background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.07)',
-    borderRadius: 16, padding: '18px 16px',
-    display: 'flex', flexDirection: 'column', gap: 4,
-    backdropFilter: 'blur(8px)',
+
+  statCard: {
+    flex: 1,
+    background:
+      'rgba(255,255,255,0.04)',
+    border:
+      '1px solid rgba(255,255,255,0.06)',
+    borderRadius: 22,
+    padding:
+      '22px 20px',
   },
+
   statVal: {
-    color: colors.primary,
-    fontFamily: "'Syne', sans-serif",
-    fontSize: 24, fontWeight: 800, letterSpacing: '-0.5px',
+    margin:
+      '0 0 4px',
+    color: '#ff9500',
+    fontSize: 30,
+    fontWeight: 900,
   },
+
   statLbl: {
-    color: 'rgba(255,255,255,0.35)', fontSize: 12, fontWeight: 500,
+    margin: 0,
+    color:
+      'rgba(255,255,255,0.45)',
   },
-  rightPanel: {
-    width: 500, display: 'flex', alignItems: 'center',
-    justifyContent: 'center', padding: '40px 48px',
-    background: 'rgba(255,255,255,0.03)',
-    borderLeft: '1px solid rgba(255,255,255,0.06)',
-    backdropFilter: 'blur(20px)',
-    position: 'relative', zIndex: 1,
+
+  right: {
+    width: 520,
+    display: 'flex',
+    alignItems:
+      'center',
+    justifyContent:
+      'center',
+    padding:
+      '48px 56px',
+    position: 'relative',
+    zIndex: 1,
   },
+
   card: {
-    width: '100%', maxWidth: 420,
+    width: '100%',
+    maxWidth: 430,
+    background:
+      'rgba(17,20,30,0.75)',
+    border:
+      '1px solid rgba(255,255,255,0.06)',
+    borderRadius: 34,
+    padding: 34,
+    backdropFilter:
+      'blur(24px)',
   },
-  cardTop: { marginBottom: 32 },
+
   cardBadge: {
-    display: 'inline-flex', alignItems: 'center', gap: 7,
-    background: colors.primaryLight,
-    color: colors.primaryDark,
-    border: `1px solid rgba(255,148,1,0.2)`,
-    borderRadius: 20, padding: '4px 14px',
-    fontSize: 11, fontWeight: 700,
-    letterSpacing: '0.6px', textTransform: 'uppercase' as const,
+    display: 'inline-flex',
+    alignItems:
+      'center',
+    gap: 7,
+    background:
+      'rgba(255,149,0,0.12)',
+    border:
+      '1px solid rgba(255,149,0,0.2)',
+    borderRadius: 999,
+    padding:
+      '7px 14px',
+    color: '#ff9500',
+    fontSize: 11,
+    fontWeight: 700,
+    marginBottom: 20,
+  },
+
+  title: {
+    margin:
+      '0 0 8px',
+    color: '#fff',
+    fontSize: 38,
+    fontWeight: 900,
+  },
+
+  subtitle: {
+    margin: 0,
+    color:
+      'rgba(255,255,255,0.45)',
+  },
+
+  error: {
+    display: 'flex',
+    alignItems:
+      'center',
+    gap: 10,
+    background:
+      'rgba(239,68,68,0.12)',
+    border:
+      '1px solid rgba(239,68,68,0.2)',
+    color: '#ef4444',
+    padding:
+      '14px 16px',
+    borderRadius: 16,
     marginBottom: 18,
   },
-  cardBadgeDot: {
-    width: 6, height: 6, borderRadius: '50%',
-    background: colors.primary, display: 'inline-block',
+
+  field: {
+    marginBottom: 20,
   },
-  cardTitle: {
-    fontFamily: "'Syne', sans-serif",
-    fontSize: 34, fontWeight: 800, color: colors.white,
-    margin: '0 0 8px', letterSpacing: '-1.5px',
-  },
-  cardSub: {
-    color: 'rgba(255,255,255,0.4)', fontSize: 14, margin: 0, lineHeight: 1.5,
-  },
-  errorBox: {
-    display: 'flex', alignItems: 'flex-start', gap: 10,
-    background: 'rgba(255,0,0,0.1)', border: '1px solid rgba(255,0,0,0.2)',
-    color: '#FF6B6B', borderRadius: 12, padding: '12px 16px',
-    fontSize: 13, marginBottom: 20, fontWeight: 500, lineHeight: 1.4,
-  },
-  field: { marginBottom: 20 },
+
   label: {
-    display: 'block', fontSize: 13, fontWeight: 600,
-    color: 'rgba(255,255,255,0.65)', marginBottom: 8,
+    display: 'block',
+    marginBottom: 8,
+    color:
+      'rgba(255,255,255,0.6)',
+    fontSize: 13,
+    fontWeight: 600,
   },
-  labelRow: {
-    display: 'flex', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 8,
+
+  inputWrap: {
+    position: 'relative',
   },
-  forgotBtn: {
-    background: 'none', border: 'none',
-    color: colors.primary, fontSize: 13, fontWeight: 600,
-    cursor: 'pointer', padding: 0, fontFamily: 'inherit',
-  },
-  inputWrap: { position: 'relative' },
+
   inputIcon: {
-    position: 'absolute', left: 14, top: '50%',
-    transform: 'translateY(-50%)', pointerEvents: 'none',
+    position: 'absolute',
+    left: 16,
+    top: '50%',
+    transform:
+      'translateY(-50%)',
   },
+
   input: {
-    width: '100%', paddingLeft: 42, paddingRight: 16,
-    paddingTop: 13, paddingBottom: 13,
+    width: '100%',
+    height: 56,
+    paddingLeft: 46,
+    borderRadius: 16,
+    border:
+      '1px solid rgba(255,255,255,0.08)',
+    background:
+      'rgba(255,255,255,0.04)',
+    color: '#fff',
     fontSize: 15,
-    border: '1.5px solid rgba(255,255,255,0.1)',
-    borderRadius: 12,
-    background: 'rgba(255,255,255,0.06)',
-    color: colors.white,
-    outline: 'none',
-    transition: 'all 0.2s',
-    boxSizing: 'border-box' as const,
-    fontFamily: 'inherit',
   },
-  inputErr: { borderColor: 'rgba(255,0,0,0.5)' },
+
   eyeBtn: {
-    position: 'absolute', right: 12, top: '50%',
-    transform: 'translateY(-50%)',
-    background: 'none', border: 'none', cursor: 'pointer',
-    padding: 4, display: 'flex', alignItems: 'center',
+    position: 'absolute',
+    top: '50%',
+    right: 14,
+    transform:
+      'translateY(-50%)',
+    border: 'none',
+    background:
+      'transparent',
+    cursor: 'pointer',
   },
-  fieldErr: {
-    display: 'block', marginTop: 6,
-    fontSize: 12, color: '#FF6B6B', fontWeight: 500,
+
+  submit: {
+    width: '100%',
+    height: 58,
+    border: 'none',
+    borderRadius: 18,
+    background:
+      'linear-gradient(135deg,#ff9500,#ff6a00)',
+    color: '#fff',
+    fontWeight: 800,
+    fontSize: 15,
+    display: 'flex',
+    alignItems:
+      'center',
+    justifyContent:
+      'center',
+    gap: 10,
+    cursor: 'pointer',
+    marginTop: 12,
   },
-  submitBtn: {
-    width: '100%', padding: '14px 24px',
-    background: `linear-gradient(135deg, ${colors.primary}, ${colors.primaryDark})`,
-    color: colors.white, border: 'none', borderRadius: 12,
-    fontSize: 15, fontWeight: 700, cursor: 'pointer',
-    marginTop: 8, display: 'flex', alignItems: 'center',
-    justifyContent: 'center', gap: 8,
-    transition: 'all 0.2s',
-    fontFamily: 'inherit',
-    boxShadow: `0 4px 16px rgba(255,148,1,0.3)`,
-  },
-  submitDisabled: { opacity: 0.6, cursor: 'not-allowed' },
+
   spinner: {
-    width: 18, height: 18,
-    border: '2.5px solid rgba(255,255,255,0.3)',
-    borderTop: '2.5px solid #fff',
-    borderRadius: '50%',
-    animation: 'spin 0.7s linear infinite',
-    display: 'inline-block',
+    width: 18,
+    height: 18,
+    border:
+      '2px solid rgba(255,255,255,0.3)',
+    borderTop:
+      '2px solid #fff',
+    borderRadius:
+      '50%',
+    animation:
+      'spin .7s linear infinite',
   },
-  lockNote: {
-    display: 'flex', alignItems: 'center', gap: 8,
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.07)',
-    borderRadius: 10, padding: '10px 14px',
-    fontSize: 12, color: 'rgba(255,255,255,0.3)',
-    marginTop: 16, fontWeight: 500,
+
+  fieldErr: {
+    display: 'block',
+    color: '#ef4444',
+    fontSize: 12,
+    marginTop: 6,
   },
-  foot: {
-    textAlign: 'center' as const, marginTop: 20,
-    fontSize: 13, color: 'rgba(255,255,255,0.25)',
+
+  footer: {
+    marginTop: 20,
+    textAlign: 'center',
+    color:
+      'rgba(255,255,255,0.35)',
+    fontSize: 13,
   },
-  footLink: { color: colors.primary, fontWeight: 600, textDecoration: 'none' },
 };

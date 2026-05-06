@@ -8,13 +8,20 @@ const axiosInstance: AxiosInstance = axios.create({
 });
 
 axiosInstance.interceptors.request.use(
-  config => config,
-  error => Promise.reject(error)
+  (config) => {
+    // ← Use the EXACT key your App.tsx saves to
+    const token = sessionStorage.getItem('merchant_token');
+    if (token) {
+      config.headers?.set('Authorization', `Bearer ${token}`);
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
 );
 
 axiosInstance.interceptors.response.use(
-  response => response,
-  error => Promise.reject(error)
+  (response) => response,
+  (error) => Promise.reject(error)
 );
 
 export default axiosInstance;
