@@ -1,62 +1,37 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-
 import {
-  LayoutDashboard,
-  Grid,
-  List,
-  Repeat,
-  Shirt,
-  Users,
-  LogOut,
-  ChevronRight,
-  ChevronLeft,
+  LayoutDashboard, Grid, List, Repeat, Shirt, Users, LogOut,
+  ChevronRight, ChevronLeft,
 } from 'lucide-react';
 
-
 export const NAV_ITEMS = [
-  {
-    key: 'overview',
-    label: 'Overview',
-    Icon: LayoutDashboard,
-    badge: null,
-  },
-
-  {
-    key: 'slots',
-    label: 'Slots',
-    Icon: Grid,
-    badge: null,
-  },
-
-  {
-    key: 'bookings',
-    label: 'Bookings',
-    Icon: List,
-    badge: '12',
-  },
-
-  {
-    key: 'monthly',
-    label: 'Monthly',
-    Icon: Repeat,
-    badge: null,
-  },
-
-  {
-    key: 'dryCleaning',
-    label: 'Laundry',
-    Icon: Shirt,
-    badge: '3',
-  },
-
-  {
-    key: 'subAccounts',
-    label: 'Team',
-    Icon: Users,
-    badge: null,
-  },
+  { key: 'overview',    label: 'OverView',  Icon: LayoutDashboard, badge: null },
+  { key: 'slots',       label: 'Slots',     Icon: Grid,            badge: null },
+  { key: 'bookings',    label: 'Bookings',  Icon: List,            badge: '12' },
+  { key: 'monthly',     label: 'Monthly',   Icon: Repeat,          badge: null },
+  { key: 'dryCleaning', label: 'Laundry',   Icon: Shirt,           badge: '3'  },
+  { key: 'subAccounts', label: 'Team',      Icon: Users,           badge: null },
 ];
+
+const S = {
+  bg:             '#FDEFD4',
+  bgDark:         '#F8E4B8',
+  active:         '#FFA629',
+  activeText:     '#FFFFFF',
+  iconRest:       '#FFA629',
+  labelRest:      '#3D2800',
+  labelMuted:     '#B07D3A',
+  border:         'rgba(255,166,41,0.18)',
+  shadow:         'rgba(255,142,0,0.14)',
+  divider:        'rgba(255,166,41,0.20)',
+  logoutBg:       '#EF4444',
+  logoutText:     '#FFFFFF',
+  badgeBg:        'rgba(255,166,41,0.18)',
+  badgeText:      '#FFA629',
+  badgeActive:    '#FFFFFF',
+  badgeActiveTxt: '#FFA629',
+};
 
 interface SidebarProps {
   activeTab: string;
@@ -65,470 +40,232 @@ interface SidebarProps {
   onLogout: () => void;
   collapsed: boolean;
   onToggle: () => void;
+  logoSrc?: string;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
-  activeTab,
-  onTabChange,
-  user,
-  onLogout,
-  collapsed,
-  onToggle,
+  activeTab, onTabChange, user, onLogout, collapsed, onToggle, logoSrc,
 }) => {
   return (
-    <motion.div
-      animate={{
-        width: collapsed ? 84 : 270,
-      }}
-      transition={{
-        duration: 0.35,
-      }}
-      style={{
-        minHeight: '100vh',
-        background:
-          'linear-gradient(180deg, #0f172a 0%, #111827 100%)',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        bottom: 0,
-        zIndex: 100,
-        overflow: 'hidden',
-        borderRight: '1px solid rgba(255,255,255,0.06)',
-        boxShadow: '0 10px 40px rgba(0,0,0,0.35)',
-        backdropFilter: 'blur(18px)',
-      }}
-    >
-      {/* Glow Background */}
-      <div
-        style={{
-          position: 'absolute',
-          top: -120,
-          left: -120,
-          width: 260,
-          height: 260,
-          borderRadius: '50%',
-          background: 'rgba(99,102,241,0.18)',
-          filter: 'blur(80px)',
-        }}
-      />
-
-      {/* Logo */}
-      <div
-        style={{
-          padding: collapsed ? '24px 0' : '24px 20px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 14,
-          justifyContent: collapsed ? 'center' : 'flex-start',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
-          position: 'relative',
-        }}
-      >
-        <motion.div
-          whileHover={{
-            rotate: 8,
-            scale: 1.08,
-          }}
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: 16,
-            background:
-              'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 12px 30px rgba(99,102,241,0.35)',
-          }}
-        >
-          <span
-            style={{
-              color: '#fff',
-              fontSize: 22,
-              fontWeight: 800,
-            }}
-          >
-            V
-          </span>
-        </motion.div>
-
-        {!collapsed && (
-          <motion.div
-            initial={{
-              opacity: 0,
-              x: -10,
-            }}
-            animate={{
-              opacity: 1,
-              x: 0,
-            }}
-          >
-            <h2
-              style={{
-                margin: 0,
-                color: '#fff',
-                fontSize: 22,
-                fontWeight: 800,
-                letterSpacing: '-1px',
-              }}
-            >
-              Vervoer
-            </h2>
-
-            <p
-              style={{
-                margin: 0,
-                color: '#94a3b8',
-                fontSize: 11,
-                letterSpacing: '2px',
-                textTransform: 'uppercase',
-              }}
-            >
-              Merchant Panel
-            </p>
-          </motion.div>
-        )}
-      </div>
-
-      {/* Navigation */}
-      <div
-        style={{
-          flex: 1,
-          padding: '18px 12px',
-        }}
-      >
-        {!collapsed && (
-          <p
-            style={{
-              color: '#64748b',
-              fontSize: 11,
-              marginBottom: 12,
-              paddingLeft: 12,
-              fontWeight: 700,
-              letterSpacing: '2px',
-              textTransform: 'uppercase',
-            }}
-          >
-            Navigation
-          </p>
-        )}
-
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8,
-          }}
-        >
-          {NAV_ITEMS.map(
-            ({
-              key,
-              label,
-              Icon,
-              badge,
-            }) => {
-              const active =
-                activeTab === key;
-
-              return (
-                <motion.button
-                  key={key}
-                  whileHover={{
-                    scale: 1.02,
-                    x: 4,
-                  }}
-                  whileTap={{
-                    scale: 0.98,
-                  }}
-                  onClick={() =>
-                    onTabChange(key)
-                  }
-                  style={{
-                    width: '100%',
-                    border: active
-                      ? '1px solid rgba(99,102,241,0.3)'
-                      : '1px solid transparent',
-                    outline: 'none',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 14,
-                    padding: collapsed
-                      ? '14px'
-                      : '14px 16px',
-                    borderRadius: 18,
-                    background: active
-                      ? 'linear-gradient(135deg, rgba(99,102,241,0.22), rgba(139,92,246,0.18))'
-                      : 'transparent',
-                    color: active
-                      ? '#fff'
-                      : '#94a3b8',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    transition:
-                      'all 0.25s ease',
-                    justifyContent:
-                      collapsed
-                        ? 'center'
-                        : 'flex-start',
-                    backdropFilter:
-                      'blur(10px)',
-                  }}
-                >
-                  {active && (
-                    <motion.div
-                      layoutId="active-pill"
-                      style={{
-                        position: 'absolute',
-                        inset: 0,
-                        borderRadius: 18,
-                        background:
-                          'linear-gradient(135deg, rgba(99,102,241,0.18), rgba(139,92,246,0.08))',
-                        zIndex: 0,
-                      }}
-                    />
-                  )}
-
-                  <div
-                    style={{
-                      position: 'relative',
-                      zIndex: 1,
-                    }}
-                  >
-                    <Icon
-                      size={18}
-                      color={
-                        active
-                          ? '#fff'
-                          : '#94a3b8'
-                      }
-                    />
-                  </div>
-
-                  {!collapsed && (
-                    <>
-                      <span
-                        style={{
-                          flex: 1,
-                          textAlign: 'left',
-                          fontSize: 14,
-                          fontWeight: active
-                            ? 700
-                            : 500,
-                          position: 'relative',
-                          zIndex: 1,
-                        }}
-                      >
-                        {label}
-                      </span>
-
-                      {badge && (
-                        <motion.div
-                          animate={{
-                            scale: [
-                              1,
-                              1.08,
-                              1,
-                            ],
-                          }}
-                          transition={{
-                            repeat:
-                              Infinity,
-                            duration: 2,
-                          }}
-                          style={{
-                            minWidth: 24,
-                            height: 24,
-                            borderRadius: 999,
-                            background: active
-                              ? '#fff'
-                              : 'rgba(99,102,241,0.18)',
-                            color: active
-                              ? '#6366f1'
-                              : '#a5b4fc',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent:
-                              'center',
-                            fontSize: 11,
-                            fontWeight: 700,
-                            position:
-                              'relative',
-                            zIndex: 1,
-                          }}
-                        >
-                          {badge}
-                        </motion.div>
-                      )}
-                    </>
-                  )}
-                </motion.button>
-              );
-            }
-          )}
-        </div>
-      </div>
-
-      {/* User Section */}
-      <div
-        style={{
-          padding: 14,
-          borderTop:
-            '1px solid rgba(255,255,255,0.06)',
-        }}
-      >
-        {!collapsed && (
-          <motion.div
-            whileHover={{
-              scale: 1.02,
-            }}
-            style={{
-              padding: 14,
-              borderRadius: 20,
-              background:
-                'rgba(255,255,255,0.04)',
-              border:
-                '1px solid rgba(255,255,255,0.06)',
-              marginBottom: 12,
-              backdropFilter: 'blur(10px)',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-              }}
-            >
-              <div
-                style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 16,
-                  background:
-                    'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#fff',
-                  fontWeight: 800,
-                  fontSize: 18,
-                }}
-              >
-                {user?.firstName?.[0]?.toUpperCase() ||
-                  'M'}
-              </div>
-
-              <div>
-                <p
-                  style={{
-                    margin: 0,
-                    color: '#fff',
-                    fontWeight: 700,
-                    fontSize: 14,
-                  }}
-                >
-                  {user?.firstName ||
-                    'Merchant'}
-                </p>
-
-                <p
-                  style={{
-                    margin: 0,
-                    color: '#94a3b8',
-                    fontSize: 11,
-                  }}
-                >
-                  Admin Access
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Logout Button */}
-        <motion.button
-          whileHover={{
-            scale: 1.02,
-          }}
-          whileTap={{
-            scale: 0.98,
-          }}
-          onClick={onLogout}
-          style={{
-            width: '100%',
-            outline: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent:
-              collapsed
-                ? 'center'
-                : 'flex-start',
-            gap: 12,
-            padding: collapsed
-              ? '14px'
-              : '14px 16px',
-            borderRadius: 18,
-            background:
-              'rgba(239,68,68,0.12)',
-            border:
-              '1px solid rgba(239,68,68,0.2)',
-            color: '#ef4444',
-            fontWeight: 600,
-            fontSize: 14,
-          }}
-        >
-          <LogOut size={18} />
-
-          {!collapsed && (
-            <span>Sign Out</span>
-          )}
-        </motion.button>
-      </div>
-
-      {/* Collapse Toggle */}
+    <>
+      {/* The toggle button lives OUTSIDE the sidebar so it's never clipped */}
       <motion.button
-        whileHover={{
-          scale: 1.1,
-        }}
-        whileTap={{
-          scale: 0.92,
-        }}
+        animate={{ left: collapsed ? 67 : 227 }}
+        transition={{ duration: 0.32, ease: [0.25, 0.25, 0, 1] }}
+        whileHover={{ scale: 1.15 }}
+        whileTap={{ scale: 0.90 }}
         onClick={onToggle}
+        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         style={{
-          position: 'absolute',
-          top: 24,
-          right: -14,
-          width: 30,
-          height: 30,
+          position: 'fixed',
+          top: 28,
+          zIndex: 200,          // above sidebar (z-index 100)
+          width: 28,
+          height: 28,
           borderRadius: '50%',
-          border: 'none',
+          border: `2px solid rgba(255,166,41,0.35)`,
           cursor: 'pointer',
-          background:
-            'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+          background: S.active,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow:
-            '0 10px 24px rgba(99,102,241,0.4)',
+          boxShadow: '0 4px 16px rgba(255,142,0,0.40)',
+          outline: 'none',
+          padding: 0,
         }}
       >
-        {collapsed ? (
-          <ChevronRight
-            size={14}
-            color="#fff"
-          />
-        ) : (
-          <ChevronLeft
-            size={14}
-            color="#fff"
-          />
-        )}
+        {collapsed
+          ? <ChevronRight size={13} color="#fff" strokeWidth={2.5} />
+          : <ChevronLeft  size={13} color="#fff" strokeWidth={2.5} />
+        }
       </motion.button>
-    </motion.div>
+
+      {/* Sidebar panel — overflow:hidden so nothing inside bleeds out */}
+      <motion.div
+        animate={{ width: collapsed ? 80 : 240 }}
+        transition={{ duration: 0.32, ease: [0.25, 0.25, 0, 1] }}
+        style={{
+          minHeight: '100vh',
+          background: S.bg,
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'fixed',
+          top: 0, left: 0, bottom: 0,
+          zIndex: 100,
+          overflow: 'hidden',         // ← no clipping of external button
+          borderRight: `1px solid ${S.divider}`,
+          boxShadow: `4px 0 24px ${S.shadow}`,
+        }}
+      >
+        {/* ── Logo ── */}
+        <div style={{
+          padding: collapsed ? '22px 0' : '22px 20px',
+          display: 'flex', alignItems: 'center', gap: 12,
+          justifyContent: collapsed ? 'center' : 'flex-start',
+          borderBottom: `1px solid ${S.divider}`,
+          minHeight: 80,
+        }}>
+          <motion.div
+            whileHover={{ rotate: 6, scale: 1.08 }}
+            style={{
+              width: 44, height: 44, borderRadius: 14,
+              background: S.active,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: `0 8px 22px ${S.shadow}`,
+              overflow: 'hidden', flexShrink: 0,
+            }}
+          >
+            {logoSrc
+              ? <img src={logoSrc} alt="logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <span style={{ color: '#fff', fontSize: 20, fontWeight: 900 }}>V</span>
+            }
+          </motion.div>
+
+          {!collapsed && (
+            <motion.div
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -8 }}
+              transition={{ duration: 0.22 }}
+            >
+              <h2 style={{
+                margin: 0, color: S.labelRest, fontSize: 20,
+                fontWeight: 900, letterSpacing: '-0.5px',
+                fontFamily: 'Playfair Display, serif',
+              }}>Vervoer</h2>
+              <p style={{
+                margin: 0, color: S.labelMuted, fontSize: 10,
+                letterSpacing: '1.8px', textTransform: 'uppercase', fontWeight: 600,
+              }}>Merchant Panel</p>
+            </motion.div>
+          )}
+        </div>
+
+        {/* ── Navigation ── */}
+        <div style={{ flex: 1, padding: '16px 10px', overflowY: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {NAV_ITEMS.map(({ key, label, Icon, badge }) => {
+              const active = activeTab === key;
+              return (
+                <motion.button
+                  key={key}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => onTabChange(key)}
+                  style={{
+                    width: '100%', border: 'none', outline: 'none',
+                    cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: collapsed ? '13px 0' : '13px 16px',
+                    borderRadius: 14,
+                    background: active ? S.active : 'transparent',
+                    color: active ? S.activeText : S.labelRest,
+                    position: 'relative',
+                    transition: 'background 0.22s ease, color 0.22s ease',
+                    justifyContent: collapsed ? 'center' : 'flex-start',
+                    boxShadow: active ? `0 6px 18px ${S.shadow}` : 'none',
+                  }}
+                >
+                  <Icon size={19} color={active ? S.activeText : S.iconRest} style={{ flexShrink: 0 }} />
+
+                  {!collapsed && (
+                    <>
+                      <span style={{
+                        flex: 1, textAlign: 'left', fontSize: 14,
+                        fontWeight: active ? 700 : 500,
+                        color: active ? S.activeText : S.labelRest,
+                      }}>
+                        {label}
+                      </span>
+                      {badge && (
+                        <span style={{
+                          minWidth: 22, height: 22, borderRadius: 999,
+                          background: active ? S.badgeActive : S.badgeBg,
+                          color: active ? S.badgeActiveTxt : S.badgeText,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 11, fontWeight: 700, padding: '0 5px',
+                        }}>
+                          {badge}
+                        </span>
+                      )}
+                    </>
+                  )}
+
+                  {/* Collapsed badge dot */}
+                  {collapsed && badge && (
+                    <span style={{
+                      position: 'absolute', top: 6, right: 10,
+                      width: 8, height: 8, borderRadius: '50%',
+                      background: S.active,
+                      border: `2px solid ${S.bg}`,
+                    }} />
+                  )}
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── User + Logout ── */}
+        <div style={{ padding: '12px 10px 16px', borderTop: `1px solid ${S.divider}` }}>
+          {!collapsed ? (
+            <motion.div
+              whileHover={{ scale: 1.01 }}
+              style={{
+                padding: '12px 14px', borderRadius: 16,
+                background: S.bgDark, border: `1px solid ${S.border}`,
+                marginBottom: 10,
+                display: 'flex', alignItems: 'center', gap: 11,
+              }}
+            >
+              <div style={{
+                width: 42, height: 42, borderRadius: '50%',
+                background: `linear-gradient(135deg, ${S.active} 0%, #E08A00 100%)`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#fff', fontWeight: 800, fontSize: 16, flexShrink: 0,
+              }}>
+                {user?.firstName?.[0]?.toUpperCase() || 'M'}
+              </div>
+              <div>
+                <p style={{ margin: 0, color: S.labelRest, fontWeight: 700, fontSize: 13 }}>
+                  {user?.firstName || 'Merchant'}
+                </p>
+                <p style={{ margin: 0, color: S.labelMuted, fontSize: 11 }}>Admin</p>
+              </div>
+            </motion.div>
+          ) : (
+            <div style={{
+              width: 42, height: 42, borderRadius: '50%',
+              background: `linear-gradient(135deg, ${S.active} 0%, #E08A00 100%)`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', fontWeight: 800, fontSize: 16,
+              margin: '0 auto 10px',
+            }}>
+              {user?.firstName?.[0]?.toUpperCase() || 'M'}
+            </div>
+          )}
+
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={onLogout}
+            style={{
+              width: '100%', outline: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center',
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              gap: 10,
+              padding: collapsed ? '13px 0' : '13px 16px',
+              borderRadius: 14,
+              background: S.logoutBg, border: 'none',
+              color: S.logoutText, fontWeight: 700, fontSize: 14,
+              boxShadow: '0 4px 14px rgba(239,68,68,0.25)',
+            }}
+          >
+            <LogOut size={17} color={S.logoutText} />
+            {!collapsed && <span>Sign Out</span>}
+          </motion.button>
+        </div>
+      </motion.div>
+    </>
   );
 };
 

@@ -1,9 +1,13 @@
 import React from 'react';
 import { Gift } from 'lucide-react';
-import { C, StatsData, VENUE_COLOR, VENUE_BG } from './Tokens';
+import {  StatsData } from './Tokens';
 import { VenueIcon } from './Ui';
 
 interface MonthlyTabProps { data: StatsData; }
+
+const ORANGE = '#FFA629';
+const ORANGE_LIGHT = '#FF8E0033';
+const ORANGE_BORDER = '#FFA62940';
 
 export const MonthlyTab: React.FC<MonthlyTabProps> = ({ data }) => {
   const totalMRR  = data.venues.filter(v => v.monthlyChargeEnabled)
@@ -13,98 +17,155 @@ export const MonthlyTab: React.FC<MonthlyTabProps> = ({ data }) => {
   const monthlyVenues = data.venues.filter(v => v.monthlyChargeEnabled);
 
   return (
-    <div style={{ maxWidth: 1280, margin: '0 auto', width: '100%' }}>
-      {/* MRR Hero */}
-      <div className="fade-up" style={{
-        background: `linear-gradient(135deg, ${C.brandLight} 0%, rgba(184,134,11,0.03) 100%)`,
-        border: `1.5px solid rgba(184,134,11,0.22)`,
-        borderRadius: 22, padding: '28px 34px', marginBottom: 24,
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        boxShadow: '0 4px 20px rgba(184,134,11,0.08)',
-        animation: 'borderPulse 5s ease-in-out infinite',
-      }}>
-        <div>
-          <p style={{
-            fontSize: 10, fontWeight: 700, color: C.gray,
-            letterSpacing: '2.2px', margin: 0, textTransform: 'uppercase',
-          }}>Total Monthly Recurring</p>
-          <p style={{
-            fontSize: 52, fontWeight: 800, color: C.brand,
-            letterSpacing: '-2.5px', margin: '4px 0',
-            fontFamily: 'Playfair Display, serif',
-          }}>${totalMRR.toLocaleString()}</p>
-          <p style={{ fontSize: 13, color: C.gray, margin: 0 }}>{totalSubs} active subscribers</p>
+    <>
+      <style>{`
+        .monthly-tab { max-width: 1280px; margin: 0 auto; width: 100%; padding: 0 4px; box-sizing: border-box; }
+
+        .mrr-hero {
+          background: ${ORANGE};
+          border-radius: 18px;
+          padding: 24px 28px;
+          margin-bottom: 20px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          box-shadow: 0 6px 24px rgba(255,166,41,0.30);
+        }
+        .mrr-hero-label {
+          font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.85);
+          letter-spacing: 2px; margin: 0; text-transform: uppercase;
+        }
+        .mrr-hero-amount {
+          font-size: 48px; font-weight: 800; color: #fff;
+          letter-spacing: -2px; margin: 4px 0;
+          font-family: 'Playfair Display', serif;
+        }
+        .mrr-hero-subs { font-size: 13px; color: rgba(255,255,255,0.85); margin: 0; }
+        .mrr-hero-icon {
+          width: 56px; height: 56px; border-radius: 16px;
+          background: rgba(255,255,255,0.25);
+          display: flex; align-items: center; justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .venue-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 14px;
+        }
+        @media (max-width: 900px) {
+          .venue-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 560px) {
+          .venue-grid { grid-template-columns: 1fr; }
+          .mrr-hero { padding: 18px 20px; }
+          .mrr-hero-amount { font-size: 36px; }
+        }
+
+        .venue-card {
+          background: ${ORANGE_LIGHT};
+          border-radius: 18px;
+          padding: 16px 18px 14px;
+          border: 1.5px solid ${ORANGE_BORDER};
+          box-shadow: 0 2px 10px rgba(255,166,41,0.08);
+          transition: transform 0.18s, box-shadow 0.18s;
+          box-sizing: border-box;
+        }
+        .venue-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(255,166,41,0.18);
+        }
+        .venue-card-header {
+          display: flex; align-items: center; margin-bottom: 14px; gap: 12px;
+        }
+        .venue-icon-wrap {
+          width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
+          background: ${ORANGE}; border: 1.5px solid rgba(255,255,255,0.3);
+          display: flex; align-items: center; justify-content: center;
+        }
+        .venue-name {
+          font-weight: 700; font-size: 15px; margin: 0; color: #1a1a1a;
+          font-family: 'Playfair Display', serif;
+        }
+        .venue-type {
+          font-size: 11px; color: #888; margin: 0; text-transform: capitalize;
+        }
+        .venue-rate {
+          margin-left: auto; display: flex; align-items: baseline; gap: 2px; flex-shrink: 0;
+        }
+        .venue-rate-num {
+          font-size: 22px; font-weight: 800; color: ${ORANGE};
+          font-family: 'Playfair Display', serif;
+        }
+        .venue-rate-unit { font-size: 11px; color: #888; }
+
+        .venue-stats {
+          display: flex; background: rgba(255,255,255,0.55);
+          border-radius: 12px; padding: 10px 0;
+          border: 1px solid rgba(255,166,41,0.15);
+          justify-content: space-around;
+        }
+        .stat-item { text-align: center; flex: 1; }
+        .stat-item + .stat-item { border-left: 1px solid rgba(255,166,41,0.18); }
+        .stat-val {
+          font-size: 20px; font-weight: 800; margin: 0;
+          font-family: 'Playfair Display', serif;
+        }
+        .stat-label { font-size: 10px; color: #888; margin: 0; }
+
+        .empty-msg { color: #aaa; text-align: center; padding: 48px; }
+      `}</style>
+
+      <div className="monthly-tab">
+        <div className="mrr-hero">
+          <div>
+            <p className="mrr-hero-label">Total Monthly Recurring</p>
+            <p className="mrr-hero-amount">${totalMRR.toLocaleString()}</p>
+            <p className="mrr-hero-subs">{totalSubs} active subscribers</p>
+          </div>
+          <div className="mrr-hero-icon">
+            <Gift size={26} color="#fff" />
+          </div>
         </div>
-        <div style={{
-          width: 64, height: 64, borderRadius: 22,
-          background: C.brandLight, border: `1.5px solid ${C.brand}20`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Gift size={28} color={C.brand} />
+
+        {monthlyVenues.length === 0 && (
+          <p className="empty-msg">No venues with monthly billing.</p>
+        )}
+
+        <div className="venue-grid">
+          {monthlyVenues.map((v) => (
+            <div key={v.id} className="venue-card">
+              <div className="venue-card-header">
+                <div className="venue-icon-wrap">
+                  <VenueIcon type={v.type} size={18} color="#fff" />
+                </div>
+                <div>
+                  <p className="venue-name">{v.name}</p>
+                  <p className="venue-type">{v.type}</p>
+                </div>
+                <div className="venue-rate">
+                  <span className="venue-rate-num">${v.monthlyRate}</span>
+                  <span className="venue-rate-unit">/mo</span>
+                </div>
+              </div>
+
+              <div className="venue-stats">
+                {[
+                  { val: v.activeMonthlySubscriptions, label: 'Active Subs', color: '#1a1a1a' },
+                  { val: `$${v.monthlyRate * v.activeMonthlySubscriptions}`, label: 'MRR', color: '#FFA629' },
+                  { val: `${v.slots.booked}/${v.slots.total}`, label: 'Slots Used', color: '#2aa8a0' },
+                ].map(item => (
+                  <div key={item.label} className="stat-item">
+                    <p className="stat-val" style={{ color: item.color }}>{item.val}</p>
+                    <p className="stat-label">{item.label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
-
-      {monthlyVenues.length === 0 && (
-        <p style={{ color: C.gray, textAlign: 'center', padding: 48 }}>
-          No venues with monthly billing.
-        </p>
-      )}
-
-      {monthlyVenues.map((v, i) => (
-        <div key={v.id} className="card-hover fade-up" style={{
-          background: C.card, borderRadius: 20, padding: '20px 24px',
-          border: `1.5px solid ${C.border}`, marginBottom: 14,
-          boxShadow: '0 2px 10px rgba(28,20,16,0.05)',
-          animationDelay: `${i * 70}ms`,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
-            <div style={{
-              width: 44, height: 44, borderRadius: 13, flexShrink: 0,
-              background: VENUE_BG[v.type], border: `1px solid ${VENUE_COLOR[v.type]}18`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <VenueIcon type={v.type} size={19} color={VENUE_COLOR[v.type]} />
-            </div>
-            <div style={{ flex: 1, marginLeft: 13 }}>
-              <p style={{
-                fontWeight: 700, fontSize: 16, margin: 0,
-                fontFamily: 'Playfair Display, serif',
-              }}>{v.name}</p>
-              <p style={{ fontSize: 12, color: C.gray, margin: 0, textTransform: 'capitalize' }}>
-                {v.type}
-              </p>
-            </div>
-            <div>
-              <span style={{
-                fontSize: 30, fontWeight: 800, color: C.brand,
-                fontFamily: 'Playfair Display, serif',
-              }}>${v.monthlyRate}</span>
-              <span style={{ fontSize: 12, color: C.gray }}>/mo</span>
-            </div>
-          </div>
-
-          <div style={{
-            display: 'flex', background: C.bgDeep, borderRadius: 14,
-            padding: '13px 20px', gap: 20, justifyContent: 'space-around',
-            border: `1px solid ${C.border}`,
-          }}>
-            {[
-              { val: v.activeMonthlySubscriptions, label: 'Active Subs', color: C.text },
-              { val: `$${v.monthlyRate * v.activeMonthlySubscriptions}`, label: 'MRR', color: C.brand },
-              { val: `${v.slots.booked}/${v.slots.total}`, label: 'Slots Used', color: C.teal },
-            ].map(item => (
-              <div key={item.label} style={{ textAlign: 'center' }}>
-                <p style={{
-                  fontSize: 24, fontWeight: 800, margin: 0, color: item.color,
-                  fontFamily: 'Playfair Display, serif',
-                }}>{item.val}</p>
-                <p style={{ fontSize: 11, color: C.gray, margin: 0 }}>{item.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
+    </>
   );
 };
 

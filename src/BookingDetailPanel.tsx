@@ -1,990 +1,163 @@
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { ArrowLeft, Car, Warehouse, Home, Phone, Mail, LogOut, RefreshCw, User } from "lucide-react";
 
-
-import  {
-  useState,
-} from 'react';
-
-import { motion } from 'framer-motion';
-
-import {
-  ArrowLeft,
-  Car,
-  Warehouse,
-  Home,
-  Phone,
-  Mail,
-  LogOut,
-  RefreshCw,
-  User,
-} from 'lucide-react';
-/* ───────────────────────────────────────────── */
-/* TYPES */
-/* ───────────────────────────────────────────── */
-
-type BookingType =
-  | 'parking'
-  | 'garage'
-  | 'residence';
-
-type BookingStatus =
-  | 'pending'
-  | 'confirmed'
-  | 'in_progress'
-  | 'completed'
-  | 'cancelled'
-  | 'active'
-  | 'SUCCESS'
-  | 'FAILED';
-
-interface EarlyCheckOut {
-  markedAt: string;
-  originalTo: string;
-}
-
+type BookingType = "parking" | "garage" | "residence";
 interface BookingDetail {
-  _id: string;
-  bookingId: string;
-  orderNumber: string;
-  status: BookingStatus;
-  createdAt: string;
-  vehicleNumber: string;
-  totalAmount: number;
-
-  bookingPeriod?: {
-    from: string;
-    to: string;
-  };
-
-  placeInfo?: {
-    name: string;
-    address: string;
-    phoneNo: string;
-  };
-
-  slot?: string;
-  type: BookingType;
-
-  paymentMethod?: string;
-  paymentStatus?: string;
-
-  earlyCheckOut?: EarlyCheckOut | null;
-
-  user?: {
-    firstName: string;
-    lastName: string;
-    phone: string;
-    email?: string;
-  };
+  _id: string; bookingId: string; orderNumber: string; status: any;
+  createdAt: string; vehicleNumber: string; totalAmount: number;
+  bookingPeriod?: { from: string; to: string };
+  placeInfo?: { name: string; address: string; phoneNo: string };
+  slot?: string; type: BookingType;
+  paymentMethod?: string; paymentStatus?: string;
+  user?: { firstName: string; lastName: string; phone: string; email?: string };
 }
+interface Props { bookingData: BookingDetail; onBack: () => void; }
 
-interface Props {
-  bookingData: BookingDetail;
-  onBack: () => void;
-}
-
-/* ───────────────────────────────────────────── */
-/* COLORS */
-/* ───────────────────────────────────────────── */
-
-const C = {
-  bg: '#06070b',
-  card: 'rgba(17,20,30,0.78)',
-  border: 'rgba(255,255,255,0.06)',
-
-  text: '#ffffff',
-  gray: '#94a3b8',
-
-  brand: '#ff9500',
-  success: '#22c55e',
-  error: '#ef4444',
-  warning: '#f59e0b',
-
-  parking: '#60a5fa',
-  garage: '#a78bfa',
-  residence: '#34d399',
+const O = {
+  primary:"#FFA629", primaryDark:"#E08A00", primaryLight:"rgba(255,166,41,0.12)",
+  primaryBorder:"rgba(255,166,41,0.30)", card:"#FFFFFF", cardBorder:"rgba(255,166,41,0.25)",
+  text:"#1A0F00", muted:"#8A7560", divider:"rgba(255,166,41,0.15)",
+  shadow:"rgba(255,142,0,0.10)", success:"#22C55E", warning:"#F59E0B", error:"#EF4444",
 };
 
-/* ───────────────────────────────────────────── */
-/* HELPERS */
-/* ───────────────────────────────────────────── */
 const fadeUp = {
-  hidden: {
-    opacity: 0,
-    y: 24,
-  },
-
-  visible: (i: number = 0) => ({
-    opacity: 1,
-    y: 0,
-
-    transition: {
-      delay: i * 0.07,
-      duration: 0.55,
-    },
-  }),
+  hidden:{opacity:0,y:20},
+  visible:(i:number=0)=>({opacity:1,y:0,transition:{delay:i*0.07,duration:0.5}}),
 };
 
-const getTypeColor = (
-  type: BookingType
-) =>
-  ({
-    parking: C.parking,
-    garage: C.garage,
-    residence: C.residence,
-  }[type]);
-
-const getTypeBg = (
-  type: BookingType
-) =>
-  ({
-    parking: 'rgba(96,165,250,0.1)',
-    garage: 'rgba(167,139,250,0.1)',
-    residence: 'rgba(52,211,153,0.1)',
-  }[type]);
-
-const getTypeLabel = (
-  type: BookingType
-) =>
-  ({
-    parking: 'Parking Booking',
-    garage: 'Garage Booking',
-    residence: 'Residence Booking',
-  }[type]);
-
-const getStatusColor = (
-  status: string
-) => {
-  switch (
-    status?.toUpperCase()
-  ) {
-    case 'SUCCESS':
-    case 'CONFIRMED':
-    case 'ACTIVE':
-    case 'COMPLETED':
-      return C.success;
-
-    case 'PENDING':
-      return C.warning;
-
-    case 'FAILED':
-    case 'CANCELLED':
-      return C.error;
-
-    default:
-      return '#60a5fa';
-  }
+const getStatusStyle = (status:string) => {
+  const s=(status||"").toUpperCase();
+  if(["SUCCESS","CONFIRMED","ACTIVE","COMPLETED"].includes(s)) return {bg:O.success,color:"#fff"};
+  if(["PENDING","IN_PROGRESS"].includes(s)) return {bg:O.warning,color:"#fff"};
+  return {bg:O.error,color:"#fff"};
 };
 
-const fmtDateTime = (
-  iso: string
-) => {
-  try {
-    return new Date(
-      iso
-    ).toLocaleString();
-  } catch {
-    return 'N/A';
-  }
+const TypeIcon = ({type,size=24}:{type:BookingType;size?:number}) => {
+  if(type==="parking") return <Car size={size} color="#FFFFFF"/>;
+  if(type==="garage") return <Warehouse size={size} color="#FFFFFF"/>;
+  return <Home size={size} color="#FFFFFF"/>;
 };
 
-/* ───────────────────────────────────────────── */
-/* ICON */
-/* ───────────────────────────────────────────── */
+const fmtDate = (iso:string) => { try{return new Date(iso).toLocaleString();}catch{return "N/A";} };
 
-const TypeIcon = ({
-  type,
-  size = 24,
-}: {
-  type: BookingType;
-  size?: number;
-}) => {
-  const color =
-    getTypeColor(type);
-
-  if (type === 'parking')
-    return (
-      <Car
-        size={size}
-        color={color}
-      />
-    );
-
-  if (type === 'garage')
-    return (
-      <Warehouse
-        size={size}
-        color={color}
-      />
-    );
-
-  return (
-    <Home
-      size={size}
-      color={color}
-    />
-  );
-};
-
-/* ───────────────────────────────────────────── */
-/* MODERN COMPONENTS */
-/* ───────────────────────────────────────────── */
-
-const SectionTitle = ({
-  children,
-}: any) => (
-  <div
-    style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent:
-        'space-between',
-      marginBottom: 16,
-    }}
-  >
-    <h3
-      style={{
-        margin: 0,
-        color: '#fff',
-        fontSize: 20,
-        fontWeight: 800,
-      }}
-    >
-      {children}
-    </h3>
-
-    <div
-      style={{
-        width: 50,
-        height: 4,
-        borderRadius: 999,
-        background:
-          'linear-gradient(90deg,#ff9500,#ffb347)',
-      }}
-    />
+const InfoRow = ({label,value,valueColor}:{label:string;value:string;valueColor?:string}) => (
+  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 0",borderBottom:"1px solid "+O.divider}}>
+    <span style={{fontSize:13,color:O.muted,fontWeight:500}}>{label}</span>
+    <span style={{fontSize:14,fontWeight:700,color:valueColor||O.text}}>{value}</span>
   </div>
 );
 
-const Card = ({
-  children,
-  delay = 0,
-}: any) => (
-  <motion.div
-    custom={delay}
-    variants={fadeUp}
-    initial="hidden"
-    animate="visible"
-    whileHover={{
-      y: -3,
-    }}
-    style={{
-      background: C.card,
-      border:
-        '1px solid rgba(255,255,255,0.06)',
-      borderRadius: 28,
-      padding: 24,
-      backdropFilter: 'blur(18px)',
-      boxShadow:
-        '0 20px 50px rgba(0,0,0,0.28)',
-      marginBottom: 20,
-    }}
+const Section = ({title,children,delay}:any) => (
+  <motion.div custom={delay} variants={fadeUp} initial="hidden" animate="visible"
+    style={{background:O.card,borderRadius:20,border:"1.5px solid "+O.cardBorder,padding:"20px 22px",marginBottom:16,boxShadow:"0 4px 18px "+O.shadow}}
   >
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+      <h3 style={{margin:0,color:O.text,fontSize:16,fontWeight:800,fontFamily:"Playfair Display, serif"}}>{title}</h3>
+      <div style={{width:40,height:3,borderRadius:999,background:"linear-gradient(90deg,"+O.primary+","+O.primaryDark+")"}}/>
+    </div>
     {children}
   </motion.div>
 );
 
-const InfoRow = ({
-  label,
-  value,
-  valueColor,
-}: any) => (
-  <motion.div
-    whileHover={{
-      x: 4,
-    }}
-    style={{
-      display: 'flex',
-      justifyContent:
-        'space-between',
-      alignItems: 'center',
-      padding: '15px 0',
-      borderBottom:
-        '1px solid rgba(255,255,255,0.05)',
-    }}
-  >
-    <span
-      style={{
-        fontSize: 13,
-        color: '#94a3b8',
-      }}
-    >
-      {label}
-    </span>
-
-    <span
-      style={{
-        fontSize: 14,
-        fontWeight: 700,
-        color:
-          valueColor || '#fff',
-      }}
-    >
-      {value}
-    </span>
-  </motion.div>
-);
-
-/* ───────────────────────────────────────────── */
-/* MAIN */
-/* ───────────────────────────────────────────── */
-
-export default function BookingDetailPanel({
-  bookingData,
-  onBack,
-}: Props) {
-  const [booking] =
-    useState(bookingData);
-
-  const typeColor =
-    getTypeColor(
-      booking.type
-    );
-
-  const statusColor =
-    getStatusColor(
-      booking.status
-    );
-
+export default function BookingDetailPanel({bookingData,onBack}:Props) {
+  const [booking] = useState(bookingData);
+  const st = getStatusStyle(booking.status);
   return (
-    <motion.div
-      initial="hidden"
-      animate="visible"
-      style={{
-        maxWidth: 860,
-        margin: '0 auto',
-        width: '100%',
-        paddingBottom: 50,
-        position: 'relative',
-      }}
-    >
-      {/* Glow */}
-      <div
-        style={{
-          position: 'absolute',
-          top: -100,
-          right: -100,
-          width: 260,
-          height: 260,
-          borderRadius: '50%',
-          background:
-            'rgba(255,149,0,0.08)',
-          filter: 'blur(100px)',
-        }}
-      />
-
-      {/* Back Button */}
-      <motion.button
-        whileHover={{
-          x: -4,
-        }}
-        whileTap={{
-          scale: 0.96,
-        }}
-        onClick={onBack}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          background:
-            'rgba(255,255,255,0.03)',
-          border:
-            '1px solid rgba(255,255,255,0.06)',
-          color: '#d6d9e3',
-          cursor: 'pointer',
-          padding: '13px 18px',
-          borderRadius: 16,
-          fontFamily: 'inherit',
-          fontSize: 14,
-          fontWeight: 600,
-          marginBottom: 24,
-          backdropFilter:
-            'blur(10px)',
-        }}
+    <motion.div initial="hidden" animate="visible" style={{maxWidth:860,margin:"0 auto",width:"100%",paddingBottom:50}}>
+      <motion.button whileHover={{x:-4}} whileTap={{scale:0.97}} onClick={onBack}
+        style={{display:"flex",alignItems:"center",gap:10,background:O.primaryLight,border:"1.5px solid "+O.primaryBorder,color:O.primaryDark,cursor:"pointer",padding:"11px 18px",borderRadius:14,fontFamily:"inherit",fontSize:14,fontWeight:700,marginBottom:22}}
       >
-        <ArrowLeft size={16} />
-        Back to Bookings
+        <ArrowLeft size={16} color={O.primaryDark}/>Back to Bookings
       </motion.button>
 
-      {/* HERO */}
-      <motion.div
-        custom={0}
-        variants={fadeUp}
-        initial="hidden"
-        animate="visible"
-        style={{
-          position: 'relative',
-          overflow: 'hidden',
-          borderRadius: 30,
-          padding: 30,
-          marginBottom: 24,
-          background:
-            'linear-gradient(135deg, rgba(255,149,0,0.12), rgba(255,149,0,0.04))',
-          border:
-            '1px solid rgba(255,149,0,0.18)',
-          backdropFilter:
-            'blur(18px)',
-          boxShadow:
-            '0 30px 70px rgba(0,0,0,0.35)',
-        }}
+      <motion.div custom={0} variants={fadeUp} initial="hidden" animate="visible"
+        style={{background:O.primary,borderRadius:24,padding:"28px",marginBottom:20,boxShadow:"0 8px 32px rgba(255,142,0,0.25)",position:"relative",overflow:"hidden"}}
       >
-        {/* Glow */}
-        <div
-          style={{
-            position: 'absolute',
-            top: -90,
-            right: -90,
-            width: 240,
-            height: 240,
-            borderRadius: '50%',
-            background:
-              'rgba(255,149,0,0.18)',
-            filter: 'blur(90px)',
-          }}
-        />
-
-        <div
-          style={{
-            display: 'flex',
-            justifyContent:
-              'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: 20,
-            position: 'relative',
-            zIndex: 2,
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              gap: 18,
-              alignItems: 'center',
-            }}
-          >
-            <motion.div
-              animate={{
-                y: [0, -6, 0],
-              }}
-              transition={{
-                repeat: Infinity,
-                duration: 3,
-              }}
-              style={{
-                width: 80,
-                height: 80,
-                borderRadius: 26,
-                background:
-                  getTypeBg(
-                    booking.type
-                  ),
-                border: `1px solid ${typeColor}30`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent:
-                  'center',
-              }}
+        <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,borderRadius:"50%",background:"rgba(255,255,255,0.10)",pointerEvents:"none"}}/>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:20,position:"relative",zIndex:2}}>
+          <div style={{display:"flex",gap:18,alignItems:"center"}}>
+            <motion.div animate={{y:[0,-5,0]}} transition={{repeat:Infinity,duration:3}}
+              style={{width:72,height:72,borderRadius:22,background:"rgba(255,255,255,0.22)",border:"1.5px solid rgba(255,255,255,0.35)",display:"flex",alignItems:"center",justifyContent:"center"}}
             >
-              <TypeIcon
-                type={booking.type}
-                size={36}
-              />
+              <TypeIcon type={booking.type} size={32}/>
             </motion.div>
-
             <div>
-              <p
-                style={{
-                  margin: 0,
-                  color: '#94a3b8',
-                  fontSize: 12,
-                  letterSpacing:
-                    '2px',
-                  textTransform:
-                    'uppercase',
-                  fontWeight: 700,
-                }}
-              >
-                Booking Details
-              </p>
-
-              <h1
-                style={{
-                  margin:
-                    '8px 0 4px',
-                  color: '#fff',
-                  fontSize: 34,
-                  fontWeight: 900,
-                  letterSpacing:
-                    '-1px',
-                }}
-              >
-                {
-                  booking.orderNumber
-                }
-              </h1>
-
-              <p
-                style={{
-                  margin: 0,
-                  color: typeColor,
-                  fontWeight: 700,
-                }}
-              >
-                {getTypeLabel(
-                  booking.type
-                )}
-              </p>
+              <p style={{margin:0,color:"rgba(255,255,255,0.80)",fontSize:11,letterSpacing:"2px",textTransform:"uppercase",fontWeight:700}}>Booking Details</p>
+              <h1 style={{margin:"6px 0 4px",color:"#FFFFFF",fontSize:30,fontWeight:900,letterSpacing:"-1px",fontFamily:"Playfair Display, serif"}}>{booking.orderNumber}</h1>
+              <p style={{margin:0,color:"rgba(255,255,255,0.85)",fontWeight:600,fontSize:13,textTransform:"capitalize"}}>{booking.type} Booking</p>
             </div>
           </div>
-
-          {/* Amount */}
-          <motion.div
-            whileHover={{
-              scale: 1.04,
-            }}
-            style={{
-              background:
-                'rgba(255,255,255,0.05)',
-              border:
-                '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 24,
-              padding:
-                '18px 24px',
-              minWidth: 190,
-              textAlign: 'right',
-            }}
-          >
-            <p
-              style={{
-                margin: 0,
-                color: '#94a3b8',
-                fontSize: 11,
-                letterSpacing:
-                  '1px',
-                textTransform:
-                  'uppercase',
-                fontWeight: 700,
-              }}
-            >
-              Total Amount
-            </p>
-
-            <h2
-              style={{
-                margin:
-                  '10px 0 0',
-                color: '#fff',
-                fontSize: 42,
-                fontWeight: 900,
-                letterSpacing:
-                  '-2px',
-              }}
-            >
-              $
-              {booking.totalAmount?.toFixed(
-                2
-              )}
-            </h2>
-          </motion.div>
+          <div style={{background:"rgba(255,255,255,0.20)",border:"1.5px solid rgba(255,255,255,0.30)",borderRadius:18,padding:"16px 22px",textAlign:"right",minWidth:160}}>
+            <p style={{margin:0,color:"rgba(255,255,255,0.80)",fontSize:11,letterSpacing:"1px",textTransform:"uppercase",fontWeight:700}}>Total Amount</p>
+            <h2 style={{margin:"8px 0 0",color:"#FFFFFF",fontSize:38,fontWeight:900,letterSpacing:"-1.5px",fontFamily:"Playfair Display, serif"}}>${booking.totalAmount?.toFixed(2)}</h2>
+          </div>
         </div>
       </motion.div>
 
-      {/* STATUS */}
-      <motion.div
-        custom={1}
-        variants={fadeUp}
-        initial="hidden"
-        animate="visible"
-        style={{
-          display: 'flex',
-          gap: 12,
-          flexWrap: 'wrap',
-          marginBottom: 24,
-        }}
-      >
-        <motion.div
-          whileHover={{
-            scale: 1.03,
-          }}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            background:
-              'rgba(255,255,255,0.04)',
-            border: `1px solid ${statusColor}25`,
-            padding:
-              '12px 18px',
-            borderRadius: 999,
-          }}
-        >
-          <motion.div
-            animate={{
-              scale: [
-                1,
-                1.3,
-                1,
-              ],
-            }}
-            transition={{
-              repeat:
-                Infinity,
-              duration: 2,
-            }}
-            style={{
-              width: 10,
-              height: 10,
-              borderRadius:
-                '50%',
-              background:
-                statusColor,
-            }}
-          />
-
-          <span
-            style={{
-              color:
-                statusColor,
-              fontWeight: 800,
-              fontSize: 13,
-            }}
-          >
-            {booking.status}
-          </span>
-        </motion.div>
+      <motion.div custom={1} variants={fadeUp} initial="hidden" animate="visible" style={{marginBottom:20}}>
+        <div style={{display:"inline-flex",alignItems:"center",gap:8,background:st.bg+"18",border:"1.5px solid "+st.bg+"40",padding:"10px 18px",borderRadius:999}}>
+          <motion.div animate={{scale:[1,1.35,1]}} transition={{repeat:Infinity,duration:2}} style={{width:9,height:9,borderRadius:"50%",background:st.bg}}/>
+          <span style={{color:st.bg,fontWeight:800,fontSize:13}}>{booking.status}</span>
+        </div>
       </motion.div>
 
-      {/* BOOKING INFO */}
-      <SectionTitle>
-        Booking Information
-      </SectionTitle>
+      <Section title="Booking Information" delay={2}>
+        <InfoRow label="Order Number"   value={booking.orderNumber}/>
+        <InfoRow label="Vehicle Number" value={booking.vehicleNumber} valueColor={O.primary}/>
+        <InfoRow label="Booking ID"     value={booking.bookingId}/>
+        <InfoRow label="Created At"     value={fmtDate(booking.createdAt)}/>
+        {booking.slot && <InfoRow label="Slot" value={String(booking.slot)}/>}
+        {booking.bookingPeriod && (<><InfoRow label="From" value={fmtDate(booking.bookingPeriod.from)}/><InfoRow label="To" value={fmtDate(booking.bookingPeriod.to)}/></>)}
+      </Section>
 
-      <Card delay={2}>
-        <InfoRow
-          label="Order Number"
-          value={
-            booking.orderNumber
-          }
-        />
-
-        <InfoRow
-          label="Vehicle Number"
-          value={
-            booking.vehicleNumber
-          }
-          valueColor={C.brand}
-        />
-
-        <InfoRow
-          label="Booking ID"
-          value={
-            booking.bookingId
-          }
-        />
-
-        <InfoRow
-          label="Created At"
-          value={fmtDateTime(
-            booking.createdAt
-          )}
-        />
-      </Card>
-
-      {/* CUSTOMER */}
-      {booking.user && (
-        <>
-          <SectionTitle>
-            Customer
-          </SectionTitle>
-
-          <Card delay={3}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems:
-                  'center',
-                gap: 16,
-                marginBottom: 20,
-              }}
-            >
-              <motion.div
-                whileHover={{
-                  scale: 1.05,
-                }}
-                style={{
-                  width: 68,
-                  height: 68,
-                  borderRadius: 22,
-                  background:
-                    'rgba(255,149,0,0.1)',
-                  border:
-                    '1px solid rgba(255,149,0,0.2)',
-                  display: 'flex',
-                  alignItems:
-                    'center',
-                  justifyContent:
-                    'center',
-                }}
-              >
-                <User
-                  size={28}
-                  color={C.brand}
-                />
-              </motion.div>
-
-              <div>
-                <h3
-                  style={{
-                    margin:
-                      '0 0 4px',
-                    color: '#fff',
-                    fontSize: 22,
-                    fontWeight: 800,
-                  }}
-                >
-                  {
-                    booking.user
-                      .firstName
-                  }{' '}
-                  {
-                    booking.user
-                      .lastName
-                  }
-                </h3>
-
-                <p
-                  style={{
-                    margin: 0,
-                    color:
-                      '#94a3b8',
-                  }}
-                >
-                  Customer
-                </p>
-              </div>
-            </div>
-
-            <InfoRow
-              label="Phone"
-              value={
-                booking.user
-                  .phone
-              }
-            />
-
-            {booking.user
-              .email && (
-              <InfoRow
-                label="Email"
-                value={
-                  booking.user
-                    .email
-                }
-              />
-            )}
-
-            {/* ACTIONS */}
-            <div
-              style={{
-                display: 'flex',
-                gap: 12,
-                marginTop: 22,
-              }}
-            >
-              <motion.a
-                whileHover={{
-                  scale: 1.02,
-                }}
-                whileTap={{
-                  scale: 0.98,
-                }}
-                href={`tel:${booking.user.phone}`}
-                style={{
-                  flex: 1,
-                  display: 'flex',
-                  alignItems:
-                    'center',
-                  justifyContent:
-                    'center',
-                  gap: 8,
-                  background:
-                    'linear-gradient(135deg,#ff9500,#ff7b00)',
-                  padding:
-                    '14px',
-                  borderRadius: 18,
-                  textDecoration:
-                    'none',
-                  color: '#fff',
-                  fontWeight: 700,
-                  boxShadow:
-                    '0 14px 30px rgba(255,149,0,0.3)',
-                }}
-              >
-                <Phone size={16} />
-                Call
-              </motion.a>
-
-              {booking.user
-                .email && (
-                <motion.a
-                  whileHover={{
-                    scale: 1.02,
-                  }}
-                  whileTap={{
-                    scale: 0.98,
-                  }}
-                  href={`mailto:${booking.user.email}`}
-                  style={{
-                    flex: 1,
-                    display:
-                      'flex',
-                    alignItems:
-                      'center',
-                    justifyContent:
-                      'center',
-                    gap: 8,
-                    background:
-                      'rgba(255,255,255,0.04)',
-                    border:
-                      '1px solid rgba(255,255,255,0.06)',
-                    padding:
-                      '14px',
-                    borderRadius: 18,
-                    textDecoration:
-                      'none',
-                    color:
-                      '#fff',
-                    fontWeight: 700,
-                  }}
-                >
-                  <Mail size={16} />
-                  Email
-                </motion.a>
-              )}
-            </div>
-          </Card>
-        </>
+      {booking.placeInfo && (
+        <Section title="Venue" delay={3}>
+          <InfoRow label="Name"    value={booking.placeInfo.name}/>
+          <InfoRow label="Address" value={booking.placeInfo.address}/>
+          <InfoRow label="Phone"   value={booking.placeInfo.phoneNo}/>
+        </Section>
       )}
 
-      {/* PAYMENT */}
-      <SectionTitle>
-        Payment Details
-      </SectionTitle>
+      {booking.user && (
+        <Section title="Customer" delay={4}>
+          <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:16}}>
+            <div style={{width:56,height:56,borderRadius:18,background:O.primaryLight,border:"1.5px solid "+O.primaryBorder,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <User size={24} color={O.primary}/>
+            </div>
+            <div>
+              <h3 style={{margin:"0 0 2px",color:O.text,fontSize:18,fontWeight:800,fontFamily:"Playfair Display, serif"}}>{booking.user.firstName} {booking.user.lastName}</h3>
+              <p style={{margin:0,color:O.muted,fontSize:12}}>Customer</p>
+            </div>
+          </div>
+          <InfoRow label="Phone" value={booking.user.phone}/>
+          {booking.user.email && <InfoRow label="Email" value={booking.user.email}/>}
+          <div style={{display:"flex",gap:10,marginTop:18}}>
+            <motion.a whileHover={{scale:1.02}} whileTap={{scale:0.97}} href={"tel:"+booking.user.phone}
+              style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:O.primary,padding:"13px",borderRadius:14,textDecoration:"none",color:"#fff",fontWeight:700,fontSize:14,boxShadow:"0 6px 18px rgba(255,166,41,0.30)"}}
+            ><Phone size={15}/> Call</motion.a>
+            {booking.user.email && (
+              <motion.a whileHover={{scale:1.02}} whileTap={{scale:0.97}} href={"mailto:"+booking.user.email}
+                style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:O.primaryLight,border:"1.5px solid "+O.primaryBorder,padding:"13px",borderRadius:14,textDecoration:"none",color:O.primaryDark,fontWeight:700,fontSize:14}}
+              ><Mail size={15} color={O.primaryDark}/> Email</motion.a>
+            )}
+          </div>
+        </Section>
+      )}
 
-      <Card delay={4}>
-        <InfoRow
-          label="Amount"
-          value={`$${booking.totalAmount?.toFixed(
-            2
-          )}`}
-          valueColor={C.success}
-        />
+      <Section title="Payment Details" delay={5}>
+        <InfoRow label="Amount"         value={"$"+booking.totalAmount?.toFixed(2)} valueColor={O.success}/>
+        <InfoRow label="Payment Method" value={booking.paymentMethod||"N/A"}/>
+        <InfoRow label="Payment Status" value={booking.paymentStatus||"N/A"} valueColor={st.bg}/>
+      </Section>
 
-        <InfoRow
-          label="Payment Method"
-          value={
-            booking.paymentMethod ||
-            'N/A'
-          }
-        />
-
-        <InfoRow
-          label="Payment Status"
-          value={
-            booking.paymentStatus ||
-            'N/A'
-          }
-          valueColor={statusColor}
-        />
-      </Card>
-
-      {/* ACTIONS */}
-      <motion.div
-        custom={5}
-        variants={fadeUp}
-        initial="hidden"
-        animate="visible"
-        style={{
-          display: 'flex',
-          gap: 14,
-          flexWrap: 'wrap',
-          marginTop: 10,
-        }}
-      >
-        <motion.button
-          whileHover={{
-            scale: 1.02,
-            y: -2,
-          }}
-          whileTap={{
-            scale: 0.98,
-          }}
-          style={{
-            flex: 1,
-            minWidth: 220,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent:
-              'center',
-            gap: 10,
-            background:
-              'linear-gradient(135deg,#ff9500,#ff7b00)',
-            border: 'none',
-            borderRadius: 20,
-            padding:
-              '18px',
-            color: '#fff',
-            fontWeight: 800,
-            fontSize: 15,
-            cursor: 'pointer',
-            boxShadow:
-              '0 16px 36px rgba(255,149,0,0.3)',
-          }}
-        >
-          <RefreshCw size={18} />
-          Update Status
-        </motion.button>
-
-        <motion.button
-          whileHover={{
-            scale: 1.02,
-            y: -2,
-          }}
-          whileTap={{
-            scale: 0.98,
-          }}
-          style={{
-            flex: 1,
-            minWidth: 220,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent:
-              'center',
-            gap: 10,
-            background:
-              'rgba(239,68,68,0.12)',
-            border:
-              '1px solid rgba(239,68,68,0.2)',
-            borderRadius: 20,
-            padding:
-              '18px',
-            color: '#ef4444',
-            fontWeight: 800,
-            fontSize: 15,
-            cursor: 'pointer',
-          }}
-        >
-          <LogOut size={18} />
-          Cancel Booking
-        </motion.button>
+      <motion.div custom={6} variants={fadeUp} initial="hidden" animate="visible" style={{display:"flex",gap:12,flexWrap:"wrap",marginTop:8}}>
+        <motion.button whileHover={{scale:1.02,y:-2}} whileTap={{scale:0.97}}
+          style={{flex:1,minWidth:200,display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:O.primary,border:"none",borderRadius:16,padding:"16px",color:"#fff",fontWeight:800,fontSize:15,cursor:"pointer",boxShadow:"0 8px 24px rgba(255,166,41,0.30)"}}
+        ><RefreshCw size={17}/> Update Status</motion.button>
+        <motion.button whileHover={{scale:1.02,y:-2}} whileTap={{scale:0.97}}
+          style={{flex:1,minWidth:200,display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:"rgba(239,68,68,0.10)",border:"1.5px solid rgba(239,68,68,0.25)",borderRadius:16,padding:"16px",color:"#EF4444",fontWeight:800,fontSize:15,cursor:"pointer"}}
+        ><LogOut size={17}/> Cancel Booking</motion.button>
       </motion.div>
     </motion.div>
   );

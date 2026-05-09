@@ -1,87 +1,241 @@
-import React from 'react';
-import { C, StatsData, VENUE_COLOR, VENUE_BG } from './Tokens';
-import { VenueIcon, SectionLabel } from './Ui';
+import React, { useState } from 'react';
+import { StatsData } from './Tokens';
+import { VenueIcon } from './Ui';
 
 interface SlotsTabProps { data: StatsData; }
 
-export const SlotsTab: React.FC<SlotsTabProps> = ({ data }) => (
-  <div style={{ maxWidth: 1280, margin: '0 auto', width: '100%' }}>
-    <SectionLabel>Live Slot Map</SectionLabel>
-    {data.venues.map((venue, vi) => {
-      const vc  = VENUE_COLOR[venue.type];
-      const vbg = VENUE_BG[venue.type];
-      const { booked, total } = venue.slots;
-      const pct = total ? Math.round((booked / total) * 100) : 0;
+const O = {
+  primary:     '#FFA629',
+  primaryBg:   'rgba(255,166,41,0.10)',
+  primaryBorder:'rgba(255,166,41,0.55)',
+  card:        '#FFFFFF',
+  cardBorder:  'rgba(255,166,41,0.50)',
+  text:        '#1A0F00',
+  muted:       '#8A7560',
+  slotBooked:  '#4B9EFF',   // blue dot — booked
+  slotMonthly: '#FFA629',   // orange dot — monthly
+  slotAvail:   '#D1D5DB',   // grey dot — available
+  success:     '#22C55E',
+  pillBg:      'rgba(255,166,41,0.12)',
+  pillActiveBg:'#FFA629',
+  pillText:    '#FFA629',
+  pillActiveText:'#FFFFFF',
+};
 
-      return (
-        <div key={venue.id} className="card-hover fade-up" style={{
-          background: C.card, borderRadius: 22, padding: '20px 24px', marginBottom: 16,
-          border: `1.5px solid ${C.border}`, boxShadow: '0 2px 10px rgba(28,20,16,0.05)',
-          animationDelay: `${vi * 70}ms`,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
-            <div style={{
-              width: 46, height: 46, borderRadius: 14, flexShrink: 0,
-              background: vbg, border: `1px solid ${vc}20`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <VenueIcon type={venue.type} size={20} color={vc} />
-            </div>
-            <div style={{ marginLeft: 13, flex: 1 }}>
-              <p style={{
-                fontSize: 16, fontWeight: 700, margin: 0,
-                fontFamily: 'Playfair Display, serif',
-              }}>{venue.name}</p>
-              <p style={{ fontSize: 12, color: C.gray, margin: 0 }}>{venue.address}</p>
-            </div>
-            <div style={{
-              background: `${vc}10`, border: `1px solid ${vc}20`,
-              padding: '5px 14px', borderRadius: 40,
-            }}>
-              <span style={{ fontWeight: 700, color: vc, fontSize: 13 }}>{pct}% filled</span>
-            </div>
+// Filter definitions — each has a label and a predicate on fill %
+const FILTERS = [
+  { label: 'All',         test: (_pct: number) => true          },
+  { label: '0% filled',   test: (pct: number)  => pct === 0     },
+  { label: '≤25% filled', test: (pct: number)  => pct > 0 && pct <= 25  },
+  { label: '≤50% filled', test: (pct: number)  => pct > 25 && pct <= 50 },
+  { label: '>50% filled', test: (pct: number)  => pct > 50      },
+];
+
+export const SlotsTab: React.FC<SlotsTabProps> = ({ data }) => {
+  const [activeFilter, setActiveFilter] = useState(0);
+
+  // compute pct per venue once, then filter
+  const venuesWithPct = data.venues.map(v => ({
+    ...v,
+    pct: v.slots.total ? Math.round((v.slots.booked / v.slots.total) * 100) : 0,
+  }));
+
+  const filtered = venuesWithPct.filter(v => FILTERS[activeFilter].test(v.pct));
+
+  return (
+    <div style={{ maxWidth: 1280, margin: '0 auto', width: '100%' }}>
+
+      {/* ── Filter Pills ── */}
+      <div
+        style={{
+          display: 'inline-flex',
+          gap: 6,
+          background: O.primaryBg,
+          border: `1.5px solid ${O.primaryBorder}`,
+          borderRadius: 40,
+          padding: '6px 8px',
+          marginBottom: 28,
+          flexWrap: 'wrap',
+        }}
+      >
+        {FILTERS.map((f, i) => (
+          <button
+            key={f.label}
+            onClick={() => setActiveFilter(i)}
+            style={{
+              padding: '5px 16px',
+              borderRadius: 30,
+              border: 'none',
+              outline: 'none',
+              cursor: 'pointer',
+              fontSize: 12,
+              fontWeight: 700,
+              background: activeFilter === i ? O.pillActiveBg : 'transparent',
+              color: activeFilter === i ? O.pillActiveText : O.pillText,
+              transition: 'all 0.2s ease',
+            }}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── 3-column Card Grid ── */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+          gap: 20,
+        }}
+      >
+        {filtered.length === 0 && (
+          <div style={{
+            gridColumn: '1 / -1',
+            textAlign: 'center',
+            padding: '48px 0',
+            color: O.muted,
+            fontSize: 14,
+          }}>
+            No venues match this filter.
           </div>
+        )}
 
-          {/* Slot grid */}
-          <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 16 }}>
-            {Array.from({ length: total }).map((_, i) => {
-              const isMonthly = venue.monthlyChargeEnabled && i < venue.activeMonthlySubscriptions;
-              const isBooked  = i < booked;
-              return (
-                <div key={i} style={{
-                  width: 30, height: 30, borderRadius: 8,
-                  background: isMonthly ? C.brandLight : isBooked ? vbg : C.successBg,
-                  border: `1.5px solid ${isMonthly ? C.brand : isBooked ? vc : C.success}30`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'all 0.18s',
-                }}>
-                  <div style={{
-                    width: 8, height: 8, borderRadius: '50%',
-                    background: isMonthly ? C.brand : isBooked ? vc : C.success,
-                    opacity: isMonthly || isBooked ? 1 : 0.5,
-                  }} />
+        {filtered.map((venue, vi) => {
+          const { booked, total } = venue.slots;
+          const pct = venue.pct;
+
+          return (
+            <div
+              key={venue.id}
+              style={{
+                background: O.card,
+                borderRadius: 18,
+                padding: '18px 20px 16px',
+                border: `1.5px solid ${O.cardBorder}`,
+                boxShadow: '0 2px 12px rgba(255,142,0,0.07)',
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                cursor: 'pointer',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)';
+                (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 24px rgba(255,142,0,0.16)';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)';
+                (e.currentTarget as HTMLDivElement).style.boxShadow = '0 2px 12px rgba(255,142,0,0.07)';
+              }}
+            >
+              {/* ── Header ── */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                {/* Icon badge */}
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 13,
+                    background: O.primary,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    boxShadow: '0 4px 12px rgba(255,166,41,0.35)',
+                  }}
+                >
+                  <VenueIcon type={venue.type} size={20} color="#FFFFFF" />
                 </div>
-              );
-            })}
-          </div>
 
-          {/* Legend */}
-          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-            {[
-              { label: 'Booked',    color: vc        },
-              { label: 'Monthly',   color: C.brand   },
-              { label: 'Available', color: C.success },
-            ].map(l => (
-              <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <div style={{ width: 9, height: 9, borderRadius: '50%', background: l.color }} />
-                <span style={{ fontSize: 11, color: C.gray }}>{l.label}</span>
+                {/* Name + address */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: 15,
+                      fontWeight: 700,
+                      color: O.text,
+                      fontFamily: 'Playfair Display, serif',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {venue.name}
+                  </p>
+                  <p style={{ margin: 0, fontSize: 12, color: O.muted }}>{venue.address}</p>
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
-      );
-    })}
-  </div>
-);
+
+              {/* ── Slot dot grid ── */}
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 6,
+                  flexWrap: 'wrap',
+                  marginBottom: 14,
+                }}
+              >
+                {Array.from({ length: total }).map((_, i) => {
+                  const isMonthly = venue.monthlyChargeEnabled && i < venue.activeMonthlySubscriptions;
+                  const isBooked  = i < booked;
+                  const dotColor  = isMonthly ? O.slotMonthly : isBooked ? O.slotBooked : O.slotAvail;
+
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 8,
+                        background: isBooked || isMonthly
+                          ? `${dotColor}18`
+                          : '#F3F4F6',
+                        border: `1.5px solid ${isBooked || isMonthly ? dotColor + '40' : '#E5E7EB'}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 9,
+                          height: 9,
+                          borderRadius: '50%',
+                          background: dotColor,
+                          opacity: isBooked || isMonthly ? 1 : 0.4,
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* ── Legend ── */}
+              <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+                {[
+                  { label: 'Booked',    color: O.slotBooked   },
+                  { label: 'Monthly',   color: O.slotMonthly  },
+                  { label: 'Available', color: O.success       },
+                ].map(l => (
+                  <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <div
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        background: l.color,
+                      }}
+                    />
+                    <span style={{ fontSize: 11, color: O.muted, fontWeight: 500 }}>
+                      {l.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 
 export default SlotsTab;
