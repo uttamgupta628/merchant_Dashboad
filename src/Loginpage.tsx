@@ -11,7 +11,7 @@ import { logo, loginBg } from "./assets/images";
 import axiosInstance from "./Axios";
 import type { MerchantUser } from "./types/Index";
 
-const NAVBAR_HEIGHT = 64;
+const NAVBAR_HEIGHT = 80;
 
 /* ─────────────────────────────────────────── */
 /* ANIMATION EASING (FIXED TYPES)              */
@@ -257,27 +257,37 @@ export default function Loginpage({ onLogin }: LoginProps) {
           right: 0,
           height: `${NAVBAR_HEIGHT}px`,
           backgroundColor: "rgb(56, 56, 56)",
-          padding: "0 clamp(24px, 4vw, 48px)",
-          display: "flex",
-          alignItems: "center",
           zIndex: 100,
           boxShadow: "0 1px 0 rgba(255,255,255,0.08)",
+          display: "flex",
+          justifyContent: "center",
         }}
       >
-        <motion.img
-          src={logo}
-          alt="Vervoer"
-          style={{ height: "42px", width: "auto", objectFit: "contain" }}
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = "none";
+        {/* Navbar content constrained to 1920px */}
+        <div
+          style={{
+            maxWidth: "1920px",
+            width: "100%",
+            padding: "0 clamp(24px, 4vw, 48px)",
+            display: "flex",
+            alignItems: "center",
           }}
-        />
+        >
+          <motion.img
+            src={logo}
+            alt="Vervoer"
+            style={{ height: "56px", width: "auto", objectFit: "contain" }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = "none";
+            }}
+          />
+        </div>
       </motion.div>
 
-      {/* ══ VIDEO ══ */}
+      {/* ══ VIDEO (FULL WIDTH) ══ */}
       <motion.video
         className="login-video-bg"
         src={loginBg}
@@ -290,7 +300,7 @@ export default function Loginpage({ onLogin }: LoginProps) {
         transition={{ duration: 1.5, delay: 0.2 }}
       />
 
-      {/* ══ OVERLAY ══ */}
+      {/* ══ OVERLAY (FULL WIDTH) ══ */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -306,7 +316,7 @@ export default function Loginpage({ onLogin }: LoginProps) {
         }}
       />
 
-      {/* ══ CONTENT ══ */}
+      {/* ══ CONTENT (CONSTRAINED TO 1920PX) ══ */}
       <div
         style={{
           position: "relative",
@@ -314,266 +324,206 @@ export default function Loginpage({ onLogin }: LoginProps) {
           marginTop: `${NAVBAR_HEIGHT}px`,
           minHeight: `calc(100vh - ${NAVBAR_HEIGHT}px)`,
           display: "flex",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: "32px",
-          padding: "24px clamp(24px, 4vw, 48px)",
-          fontFamily: "'DM Sans', sans-serif",
+          justifyContent: "center",
+          padding: "0 clamp(24px, 4vw, 48px)",
         }}
       >
-        {/* LEFT: Welcome */}
-        <motion.div
-          variants={welcomeVariants}
-          initial="hidden"
-          animate={mounted ? "visible" : "hidden"}
-          style={{ flex: "1 1 220px" }}
+        {/* Content constrained to 1920px */}
+        <div
+          style={{
+            maxWidth: "1920px",
+            width: "100%",
+            display: "flex",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: "32px",
+            padding: "24px 0",
+            fontFamily: "'DM Sans', sans-serif",
+          }}
         >
-          <h1
-            style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontWeight: 900,
-              fontSize: "clamp(36px, 5.5vw, 80px)",
-              lineHeight: 1.1,
-              color: "#fff",
-              margin: 0,
-              textShadow: "0 2px 24px rgba(0,0,0,0.3)",
-            }}
+          {/* LEFT: Welcome */}
+          <motion.div
+            variants={welcomeVariants}
+            initial="hidden"
+            animate={mounted ? "visible" : "hidden"}
+            style={{ flex: "1 1 220px" }}
           >
-            <motion.span
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.7 }}
-            >
-              Welcome{" "}
-            </motion.span>
-            <motion.span
-              style={{ color: "#F5A623" }}
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{
-                duration: 0.6,
-                delay: 1.2,
-                type: "spring",
-                stiffness: 200,
-              }}
-            >
-              !!
-            </motion.span>
-          </h1>
-        </motion.div>
-
-        {/* RIGHT: Login card */}
-        <motion.div
-          variants={cardVariants}
-          initial="hidden"
-          animate={mounted ? "visible" : "hidden"}
-          style={{ flexShrink: 0, width: "100%", maxWidth: "440px" }}
-        >
-          <div
-            style={{
-              backgroundColor: "#FDF0DC",
-              borderRadius: "12px",
-              padding: "clamp(24px, 3vw, 40px)",
-              boxShadow: "0 20px 60px rgba(0,0,0,0.18)",
-            }}
-          >
-            {/* Verified badge */}
-            <motion.div
-              variants={badgeVariants}
-              initial="hidden"
-              animate="visible"
-              style={{ marginBottom: "18px" }}
-            >
-              <motion.span
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  backgroundColor: "#F5A623",
-                  color: "#fff",
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  padding: "6px 14px",
-                  borderRadius: "12px",
-                  fontFamily: "'DM Sans', sans-serif",
-                  letterSpacing: "0.4px",
-                  textTransform: "uppercase",
-                }}
-              >
-                <motion.span
-                  animate={{ rotate: [0, 10, -10, 0] }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                >
-                  <ShieldCheck size={13} />
-                </motion.span>
-                Verified Merchants
-              </motion.span>
-            </motion.div>
-
-            {/* Heading */}
-            <motion.h2
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.5, ease: easeOutCubic }}
+            <h1
               style={{
                 fontFamily: "'DM Sans', sans-serif",
-                fontWeight: 700,
-                fontSize: "clamp(18px, 2vw, 22px)",
-                color: "#1a1a1a",
-                marginBottom: "28px",
-                lineHeight: 1.35,
+                fontWeight: 900,
+                fontSize: "clamp(36px, 7.5vw, 110px)",
+                lineHeight: 1.1,
+                color: "#fff",
+                margin: 0,
+                textShadow: "0 2px 24px rgba(0,0,0,0.3)",
               }}
             >
-              Sign in to your merchant dashboard
-            </motion.h2>
-
-            {/* Global error */}
-            {error && (
-              <motion.div
-                variants={errorVariants}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  background: "rgba(239,68,68,0.1)",
-                  border: "1px solid rgba(239,68,68,0.25)",
-                  color: "#dc2626",
-                  padding: "12px 14px",
-                  borderRadius: "12px",
-                  marginBottom: "18px",
-                  fontSize: "13px",
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontWeight: 500,
+              <motion.span
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.7 }}
+              >
+                Welcome{" "}
+              </motion.span>
+              <motion.span
+                style={{ color: "#F5A623" }}
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{
+                  duration: 0.6,
+                  delay: 1.2,
+                  type: "spring",
+                  stiffness: 200,
                 }}
               >
-                <motion.span
-                  animate={{ rotate: [0, -5, 5, -5, 0] }}
-                  transition={{ duration: 0.5, delay: 0.2 }}
-                >
-                  <AlertCircle size={16} />
-                </motion.span>
-                <span>{error}</span>
-              </motion.div>
-            )}
+                !!
+              </motion.span>
+            </h1>
+          </motion.div>
 
-            {/* FORM */}
-            <motion.form
-              variants={formVariants}
-              initial="hidden"
-              animate="visible"
-              onSubmit={handleLogin}
+          {/* RIGHT: Login card */}
+          <motion.div
+            variants={cardVariants}
+            initial="hidden"
+            animate={mounted ? "visible" : "hidden"}
+            style={{ flexShrink: 0, width: "100%", maxWidth: "640px" }}
+          >
+            <div
+              style={{
+                backgroundColor: "#FDF0DC",
+                borderRadius: "12px",
+                padding: "clamp(24px, 3vw, 40px)",
+                boxShadow: "0 20px 60px rgba(0,0,0,0.18)",
+              }}
             >
-              {/* Email */}
+              {/* Verified badge */}
               <motion.div
-                variants={itemVariants}
-                style={{ marginBottom: "16px" }}
+                variants={badgeVariants}
+                initial="hidden"
+                animate="visible"
+                style={{ marginBottom: "18px" }}
               >
-                <label
+                <motion.span
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   style={{
-                    display: "block",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    backgroundColor: "#F5A623",
+                    color: "#fff",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    padding: "6px 14px",
+                    borderRadius: "12px",
                     fontFamily: "'DM Sans', sans-serif",
-                    fontWeight: 500,
-                    fontSize: "14px",
-                    color: "#444",
-                    marginBottom: "6px",
+                    letterSpacing: "0.4px",
+                    textTransform: "uppercase",
                   }}
                 >
-                  Email
-                </label>
-                <motion.input
-                  type="email"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setEmailErr("");
-                  }}
-                  placeholder="Enter your mail"
-                  whileFocus={{ scale: 1.02 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                  style={{
-                    width: "100%",
-                    padding: "12px 16px",
-                    borderRadius: "12px",
-                    border: emailErr
-                      ? "1.5px solid #ef4444"
-                      : "1.5px solid #f0d9b5",
-                    backgroundColor: "#fff",
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontSize: "14px",
-                    color: "#1a1a1a",
-                    outline: "none",
-                  }}
-                  onFocus={(e) =>
-                    (e.currentTarget.style.borderColor = "#F5A623")
-                  }
-                  onBlur={(e) =>
-                    (e.currentTarget.style.borderColor = emailErr
-                      ? "#ef4444"
-                      : "#f0d9b5")
-                  }
-                />
-                {emailErr && (
                   <motion.span
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
-                    style={{
-                      display: "block",
-                      color: "#ef4444",
-                      fontSize: "12px",
-                      marginTop: "5px",
-                      fontFamily: "'DM Sans', sans-serif",
+                    animate={{ rotate: [0, 10, -10, 0] }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut",
                     }}
                   >
-                    {emailErr}
+                    <ShieldCheck size={13} />
                   </motion.span>
-                )}
+                  Verified Merchants
+                </motion.span>
               </motion.div>
 
-              {/* Password */}
-              <motion.div
-                variants={itemVariants}
-                style={{ marginBottom: "10px" }}
+              {/* Heading */}
+              <motion.h2
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.5, ease: easeOutCubic }}
+                style={{
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontWeight: 700,
+                  fontSize: "clamp(18px, 2vw, 22px)",
+                  color: "#1a1a1a",
+                  marginBottom: "28px",
+                  lineHeight: 1.35,
+                }}
               >
-                <label
+                Sign in to your merchant dashboard
+              </motion.h2>
+
+              {/* Global error */}
+              {error && (
+                <motion.div
+                  variants={errorVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
                   style={{
-                    display: "block",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    background: "rgba(239,68,68,0.1)",
+                    border: "1px solid rgba(239,68,68,0.25)",
+                    color: "#dc2626",
+                    padding: "12px 14px",
+                    borderRadius: "12px",
+                    marginBottom: "18px",
+                    fontSize: "13px",
                     fontFamily: "'DM Sans', sans-serif",
                     fontWeight: 500,
-                    fontSize: "14px",
-                    color: "#444",
-                    marginBottom: "6px",
                   }}
                 >
-                  Password
-                </label>
+                  <motion.span
+                    animate={{ rotate: [0, -5, 5, -5, 0] }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                  >
+                    <AlertCircle size={16} />
+                  </motion.span>
+                  <span>{error}</span>
+                </motion.div>
+              )}
+
+              {/* FORM */}
+              <motion.form
+                variants={formVariants}
+                initial="hidden"
+                animate="visible"
+                onSubmit={handleLogin}
+              >
+                {/* Email */}
                 <motion.div
-                  style={{ position: "relative" }}
-                  whileFocus={{ scale: 1.02 }}
-                  transition={{ type: "spring", stiffness: 300 }}
+                  variants={itemVariants}
+                  style={{ marginBottom: "16px" }}
                 >
-                  <input
-                    type={showPass ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      setPassErr("");
+                  <label
+                    style={{
+                      display: "block",
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontWeight: 500,
+                      fontSize: "14px",
+                      color: "#444",
+                      marginBottom: "6px",
                     }}
-                    placeholder="Enter your Password"
+                  >
+                    Email
+                  </label>
+                  <motion.input
+                    type="email"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setEmailErr("");
+                    }}
+                    placeholder="Enter your mail"
+                    whileFocus={{ scale: 1.02 }}
+                    transition={{ type: "spring", stiffness: 300 }}
                     style={{
                       width: "100%",
-                      padding: "12px 44px 12px 16px",
+                      padding: "12px 16px",
                       borderRadius: "12px",
-                      border: passErr
+                      border: emailErr
                         ? "1.5px solid #ef4444"
                         : "1.5px solid #f0d9b5",
                       backgroundColor: "#fff",
@@ -586,142 +536,213 @@ export default function Loginpage({ onLogin }: LoginProps) {
                       (e.currentTarget.style.borderColor = "#F5A623")
                     }
                     onBlur={(e) =>
-                      (e.currentTarget.style.borderColor = passErr
+                      (e.currentTarget.style.borderColor = emailErr
                         ? "#ef4444"
                         : "#f0d9b5")
                     }
                   />
-                  <motion.button
-                    type="button"
-                    onClick={() => setShowPass(!showPass)}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    style={{
-                      position: "absolute",
-                      right: "14px",
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      color: "#999",
-                      display: "flex",
-                      alignItems: "center",
-                      padding: 0,
-                    }}
-                  >
-                    <motion.div
-                      initial={false}
-                      animate={{ rotate: showPass ? 180 : 0 }}
-                      transition={{ duration: 0.3 }}
+                  {emailErr && (
+                    <motion.span
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2 }}
+                      style={{
+                        display: "block",
+                        color: "#ef4444",
+                        fontSize: "12px",
+                        marginTop: "5px",
+                        fontFamily: "'DM Sans', sans-serif",
+                      }}
                     >
-                      {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </motion.div>
-                  </motion.button>
+                      {emailErr}
+                    </motion.span>
+                  )}
                 </motion.div>
-                {passErr && (
-                  <motion.span
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
+
+                {/* Password */}
+                <motion.div
+                  variants={itemVariants}
+                  style={{ marginBottom: "10px" }}
+                >
+                  <label
                     style={{
                       display: "block",
-                      color: "#ef4444",
-                      fontSize: "12px",
-                      marginTop: "5px",
                       fontFamily: "'DM Sans', sans-serif",
+                      fontWeight: 500,
+                      fontSize: "14px",
+                      color: "#444",
+                      marginBottom: "6px",
                     }}
                   >
-                    {passErr}
-                  </motion.span>
-                )}
-              </motion.div>
-
-              {/* Forgot password */}
-              <motion.div
-                variants={itemVariants}
-                style={{ textAlign: "right", marginBottom: "24px" }}
-              >
-                <motion.a
-                  href="#"
-                  whileHover={{
-                    scale: 1.05,
-                    textDecoration: "underline",
-                  }}
-                  style={{
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontSize: "12px",
-                    fontWeight: 500,
-                    color: "#F5A623",
-                    textDecoration: "none",
-                    display: "inline-block",
-                  }}
-                >
-                  Forgot password?
-                </motion.a>
-              </motion.div>
-
-              {/* Sign In button */}
-              <motion.div variants={itemVariants}>
-                <motion.button
-                  whileHover={{
-                    scale: 1.02,
-                    y: -2,
-                    boxShadow: "0 10px 25px rgba(245, 166, 35, 0.4)",
-                  }}
-                  whileTap={{ scale: 0.98 }}
-                  type="submit"
-                  disabled={loading}
-                  style={{
-                    width: "100%",
-                    padding: "14px",
-                    borderRadius: "12px",
-                    border: "none",
-                    backgroundColor: loading ? "#f0c070" : "#F5A623",
-                    color: "#fff",
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontWeight: 700,
-                    fontSize: "16px",
-                    cursor: loading ? "not-allowed" : "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "8px",
-                    transition: "background-color 0.2s",
-                  }}
-                >
-                  {loading ? (
-                    <motion.span
-                      animate={{ rotate: 360 }}
-                      transition={{
-                        repeat: Infinity,
-                        duration: 0.7,
-                        ease: "linear",
+                    Password
+                  </label>
+                  <motion.div
+                    style={{ position: "relative" }}
+                    whileFocus={{ scale: 1.02 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    <input
+                      type={showPass ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        setPassErr("");
                       }}
+                      placeholder="Enter your Password"
                       style={{
-                        width: "18px",
-                        height: "18px",
-                        border: "2px solid rgba(255,255,255,0.4)",
-                        borderTop: "2px solid #fff",
-                        borderRadius: "50%",
-                        display: "inline-block",
+                        width: "100%",
+                        padding: "12px 44px 12px 16px",
+                        borderRadius: "12px",
+                        border: passErr
+                          ? "1.5px solid #ef4444"
+                          : "1.5px solid #f0d9b5",
+                        backgroundColor: "#fff",
+                        fontFamily: "'DM Sans', sans-serif",
+                        fontSize: "14px",
+                        color: "#1a1a1a",
+                        outline: "none",
                       }}
+                      onFocus={(e) =>
+                        (e.currentTarget.style.borderColor = "#F5A623")
+                      }
+                      onBlur={(e) =>
+                        (e.currentTarget.style.borderColor = passErr
+                          ? "#ef4444"
+                          : "#f0d9b5")
+                      }
                     />
-                  ) : (
-                    <>
-                      <motion.span initial={{ x: 0 }} whileHover={{ x: -5 }}>
-                        Sign In
-                      </motion.span>
-                      <motion.span initial={{ x: 0 }} whileHover={{ x: 5 }}>
-                        <ArrowRight size={18} />
-                      </motion.span>
-                    </>
+                    <motion.button
+                      type="button"
+                      onClick={() => setShowPass(!showPass)}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      style={{
+                        position: "absolute",
+                        right: "14px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "#999",
+                        display: "flex",
+                        alignItems: "center",
+                        padding: 0,
+                      }}
+                    >
+                      <motion.div
+                        initial={false}
+                        animate={{ rotate: showPass ? 180 : 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </motion.div>
+                    </motion.button>
+                  </motion.div>
+                  {passErr && (
+                    <motion.span
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2 }}
+                      style={{
+                        display: "block",
+                        color: "#ef4444",
+                        fontSize: "12px",
+                        marginTop: "5px",
+                        fontFamily: "'DM Sans', sans-serif",
+                      }}
+                    >
+                      {passErr}
+                    </motion.span>
                   )}
-                </motion.button>
-              </motion.div>
-            </motion.form>
-          </div>
-        </motion.div>
+                </motion.div>
+
+                {/* Forgot password */}
+                <motion.div
+                  variants={itemVariants}
+                  style={{ textAlign: "right", marginBottom: "24px" }}
+                >
+                  <motion.a
+                    href="#"
+                    whileHover={{
+                      scale: 1.05,
+                      textDecoration: "underline",
+                    }}
+                    style={{
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: "12px",
+                      fontWeight: 500,
+                      color: "#F5A623",
+                      textDecoration: "none",
+                      display: "inline-block",
+                    }}
+                  >
+                    Forgot password?
+                  </motion.a>
+                </motion.div>
+
+                {/* Sign In button */}
+                <motion.div variants={itemVariants}>
+                  <motion.button
+                    whileHover={{
+                      scale: 1.02,
+                      y: -2,
+                      boxShadow: "0 10px 25px rgba(245, 166, 35, 0.4)",
+                    }}
+                    whileTap={{ scale: 0.98 }}
+                    type="submit"
+                    disabled={loading}
+                    style={{
+                      width: "100%",
+                      padding: "14px",
+                      borderRadius: "12px",
+                      border: "none",
+                      backgroundColor: loading ? "#f0c070" : "#F5A623",
+                      color: "#fff",
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontWeight: 700,
+                      fontSize: "16px",
+                      cursor: loading ? "not-allowed" : "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px",
+                      transition: "background-color 0.2s",
+                    }}
+                  >
+                    {loading ? (
+                      <motion.span
+                        animate={{ rotate: 360 }}
+                        transition={{
+                          repeat: Infinity,
+                          duration: 0.7,
+                          ease: "linear",
+                        }}
+                        style={{
+                          width: "18px",
+                          height: "18px",
+                          border: "2px solid rgba(255,255,255,0.4)",
+                          borderTop: "2px solid #fff",
+                          borderRadius: "50%",
+                          display: "inline-block",
+                        }}
+                      />
+                    ) : (
+                      <>
+                        <motion.span initial={{ x: 0 }} whileHover={{ x: -5 }}>
+                          Sign In
+                        </motion.span>
+                        <motion.span initial={{ x: 0 }} whileHover={{ x: 5 }}>
+                          <ArrowRight size={18} />
+                        </motion.span>
+                      </>
+                    )}
+                  </motion.button>
+                </motion.div>
+              </motion.form>
+            </div>
+          </motion.div>
+        </div>
       </div>
     </>
   );
