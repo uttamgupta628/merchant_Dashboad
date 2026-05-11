@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,300;1,9..40,400;1,9..40,500&display=swap");
+
 :root {
   --text: #6b6375;
   --text-h: #08060d;
@@ -11,9 +13,9 @@
   --shadow:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  --sans: "DM Sans", sans-serif;
+  --heading: "DM Sans", sans-serif;
+  --mono: "DM Sans", sans-serif;
 
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
@@ -64,6 +66,7 @@
 
 body {
   margin: 0;
+  font-family: "DM Sans", sans-serif;
 }
 
 h1,
