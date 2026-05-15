@@ -7,7 +7,7 @@ import { Spinner, ErrorBanner } from "./Ui";
 import { OverviewTab } from "./Overviewtab";
 import { SlotsTab } from "./Slotstab";
 import { BookingsTab } from "./Bookingstab";
-import { MonthlyTab } from "./Monthlytab";
+import  MonthlyTab   from "./Monthlytab";
 import { DryCleaningTab } from "./Drycleaningtab";
 import { SubAccountsTab } from "./Subaccountstab";
 import { Menu, X } from "lucide-react";
@@ -225,7 +225,7 @@ export default function DashboardPage({
                   )}
                   {activeTab === "slots" && <SlotsTab data={data} />}
                   {activeTab === "bookings" && <BookingsTab data={data} />}
-                  {activeTab === "monthly" && <MonthlyTab data={data} />}
+                  {activeTab === "monthly" && <MonthlyTab data={data} token={token} />}
                 </>
               ) : null)}
           </div>

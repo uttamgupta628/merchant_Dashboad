@@ -1,416 +1,843 @@
-import React from "react";
-import { motion, Variants } from "framer-motion";
-import { Gift } from "lucide-react";
-import { StatsData } from "./Tokens";
-import { VenueIcon } from "./Ui";
+import { useState, useEffect, useCallback, CSSProperties } from "react";
+import {
+  Repeat,
+  Building2,
+  Car,
+  Home,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
+import axiosInstance from "./Axios";
 
-interface MonthlyTabProps {
-  data: StatsData;
+// ─── Theme ────────────────────────────────────────────────────────────────────
+
+const O = {
+  primary:     "#FFA629",
+  primaryDark: "#E08A00",
+  primaryBg:   "rgba(255,166,41,0.12)",
+  primaryBorder:"rgba(255,166,41,0.28)",
+  primaryGlow: "rgba(255,166,41,0.16)",
+  primarySoft: "rgba(255,166,41,0.18)",
+
+  text:        "#1A0F00",
+  textMuted:   "#7A5C30",
+
+  bg:          "#FFFAF3",
+  bgDeep:      "#FFF1D6",
+  bgPage:      "#FFF8EE",
+
+  border:      "rgba(255,166,41,0.20)",
+  borderMid:   "rgba(255,166,41,0.30)",
+
+  card:        "#FFFFFF",
+  cardBorder:  "rgba(255,166,41,0.18)",
+
+  success:     "#16a34a",
+  successBg:   "rgba(22,163,74,0.09)",
+
+  error:       "#993C1D",
+  errorBg:     "#FAECE7",
+  errorBorder: "rgba(216,90,48,0.30)",
+
+  white:       "#FFFFFF",
+};
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface RawVenue {
+  _id: string;
+  parkingName?: string;
+  garageName?: string;
+  residenceName?: string;
+  address?: string;
+  gpsLocation?: { coordinates: [number, number] };
+  monthlyChargeEnabled: boolean;
+  monthlyRate: number;
 }
 
-const ORANGE = "#FFA629";
-const ORANGE_LIGHT = "#FF8E0033";
-const ORANGE_BORDER = "#FFA62940";
+interface MonthlyPatch {
+  monthlyChargeEnabled: boolean;
+  monthlyRate: number;
+}
 
-// Animation variants
-const containerVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.1,
-    },
+interface VenueMeta {
+  key: string;
+  label: string;
+  icon: React.ElementType;
+  venueType: "parking" | "garage" | "residence";
+  searchPath: string;
+  nameKey: keyof RawVenue;
+}
+
+// ─── Config ───────────────────────────────────────────────────────────────────
+
+const VENUE_TYPES: VenueMeta[] = [
+  {
+    key:        "parkinglot",
+    label:      "Parking Lots",
+    icon:       Car,
+    venueType:  "parking",
+    searchPath: "/merchants/parkinglot/search",
+    nameKey:    "parkingName",
   },
-};
-
-const cardVariants: Variants = {
-  hidden: {
-    opacity: 0,
-    y: 20,
-    scale: 0.95,
+  {
+    key:        "garage",
+    label:      "Garages",
+    icon:       Building2,
+    venueType:  "garage",
+    searchPath: "/merchants/garage/search",
+    nameKey:    "garageName",
   },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: {
-      type: "spring" as const,
-      stiffness: 100,
-      damping: 15,
-    },
+  {
+    key:        "residence",
+    label:      "Residences",
+    icon:       Home,
+    venueType:  "residence",
+    searchPath: "/merchants/residence/search",
+    nameKey:    "residenceName",
   },
-};
+];
 
-const statItemVariants: Variants = {
-  hidden: { opacity: 0, scale: 0.8 },
-  visible: (i: number) => ({
-    opacity: 1,
-    scale: 1,
-    transition: {
-      delay: 0.2 + i * 0.1,
-      type: "spring" as const,
-      stiffness: 200,
-    },
-  }),
-};
+type FilterKey = "all" | "enabled" | "disabled";
 
-export const MonthlyTab: React.FC<MonthlyTabProps> = ({ data }) => {
-  const totalMRR = data.venues
-    .filter((v) => v.monthlyChargeEnabled)
-    .reduce((s, v) => s + v.monthlyRate * v.activeMonthlySubscriptions, 0);
-  const totalSubs = data.venues
-    .filter((v) => v.monthlyChargeEnabled)
-    .reduce((s, v) => s + v.activeMonthlySubscriptions, 0);
-  const monthlyVenues = data.venues.filter((v) => v.monthlyChargeEnabled);
+// ─── Props ────────────────────────────────────────────────────────────────────
+
+interface MonthlyTabProps {
+  token?: string;
+  data?: unknown;
+}
+
+// ─── VenueCard ────────────────────────────────────────────────────────────────
+
+interface VenueCardProps {
+  venue: RawVenue;
+  meta: VenueMeta;
+  token?: string;
+  onUpdated: (id: string, patch: MonthlyPatch) => void;
+}
+
+function VenueCard({ venue, meta, token, onUpdated }: VenueCardProps) {
+  const [open, setOpen]           = useState(false);
+  const [enabled, setEnabled]     = useState(venue.monthlyChargeEnabled);
+  const [rate, setRate]           = useState(venue.monthlyRate);
+  const [rateInput, setRateInput] = useState(
+    venue.monthlyRate > 0 ? String(venue.monthlyRate) : ""
+  );
+  const [saving, setSaving]   = useState(false);
+  const [error, setError]     = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const name = (venue[meta.nameKey] as string | undefined) ?? "Unnamed";
+
+  const handleToggle = (checked: boolean) => {
+    setEnabled(checked);
+    if (!checked) { setRate(0); setRateInput(""); }
+    setError(null);
+    setSuccess(false);
+  };
+
+  const handleRateChange = (val: string) => {
+    setRateInput(val);
+    setRate(parseFloat(val) || 0);
+    setError(null);
+    setSuccess(false);
+  };
+
+  const handleSave = async () => {
+    if (enabled && rate <= 0) {
+      setError("Enter a valid monthly rate greater than 0.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    setSuccess(false);
+    try {
+      await axiosInstance.patch(
+        "/merchants/monthly-settings",
+        { venueType: meta.venueType, venueId: venue._id, monthlyChargeEnabled: enabled, monthlyRate: rate },
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+      );
+      setSuccess(true);
+      onUpdated(venue._id, { monthlyChargeEnabled: enabled, monthlyRate: rate });
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        "Failed to save. Please try again.";
+      setError(msg);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const hasChanges =
+    enabled !== venue.monthlyChargeEnabled || rate !== venue.monthlyRate;
 
   return (
-    <>
-      <style>{`
-        .monthly-tab {
-          max-width: 1280px;
-          margin: 0 auto;
-          width: 100%;
-          padding: 0 4px;
-          box-sizing: border-box;
-          font-family: 'DM Sans', sans-serif;
-        }
-
-        .venue-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 14px;
-        }
-        @media (max-width: 900px) {
-          .venue-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-        @media (max-width: 560px) {
-          .venue-grid { grid-template-columns: 1fr; }
-        }
-
-        .venue-card {
-          background: ${ORANGE_LIGHT};
-          border-radius: 18px;
-          padding: 16px 18px 14px;
-          border: 1.5px solid ${ORANGE_BORDER};
-          box-shadow: 0 2px 10px rgba(255,166,41,0.08);
-          box-sizing: border-box;
-          font-family: 'DM Sans', sans-serif;
-        }
-
-        .venue-card-header {
-          display: flex;
-          align-items: center;
-          margin-bottom: 14px;
-          gap: 12px;
-        }
-
-        .venue-icon-wrap {
-          width: 42px;
-          height: 42px;
-          border-radius: 12px;
-          flex-shrink: 0;
-          background: ${ORANGE};
-          border: 1.5px solid rgba(255,255,255,0.3);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .venue-name {
-          font-weight: 700;
-          font-size: 15px;
-          margin: 0;
-          color: #1a1a1a;
-          font-family: 'DM Sans', sans-serif;
-        }
-
-        .venue-type {
-          font-size: 11px;
-          color: #888;
-          margin: 0;
-          text-transform: capitalize;
-          font-family: 'DM Sans', sans-serif;
-        }
-
-        .venue-rate {
-          margin-left: auto;
-          display: flex;
-          align-items: baseline;
-          gap: 2px;
-          flex-shrink: 0;
-        }
-
-        .venue-rate-num {
-          font-size: 22px;
-          font-weight: 800;
-          color: ${ORANGE};
-          font-family: 'DM Sans', sans-serif;
-        }
-
-        .venue-rate-unit {
-          font-size: 11px;
-          color: #888;
-          font-family: 'DM Sans', sans-serif;
-        }
-
-        .venue-stats {
-          display: flex;
-          background: rgba(255,255,255,0.55);
-          border-radius: 12px;
-          padding: 10px 0;
-          border: 1px solid rgba(255,166,41,0.15);
-          justify-content: space-around;
-        }
-
-        .stat-item {
-          text-align: center;
-          flex: 1;
-        }
-
-        .stat-item + .stat-item {
-          border-left: 1px solid rgba(255,166,41,0.18);
-        }
-
-        .stat-val {
-          font-size: 20px;
-          font-weight: 800;
-          margin: 0;
-          font-family: 'DM Sans', sans-serif;
-        }
-
-        .stat-label {
-          font-size: 10px;
-          color: #888;
-          margin: 0;
-          font-family: 'DM Sans', sans-serif;
-        }
-      `}</style>
-
-      <div className="monthly-tab">
-        {/* Hero MRR Section */}
-        <motion.div
-          initial={{ opacity: 0, y: -20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          whileHover={{
-            scale: 1.01,
-            boxShadow: "0 10px 32px rgba(255,166,41,0.35)",
-          }}
-          style={{
-            background: `linear-gradient(135deg, ${ORANGE} 0%, #E08A00 100%)`,
-            borderRadius: 18,
-            padding: "24px 28px",
-            marginBottom: 20,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            boxShadow: "0 6px 24px rgba(255,166,41,0.30)",
-            fontFamily: "'DM Sans', sans-serif",
-          }}
-        >
-          <div>
-            <motion.p
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                color: "rgba(255,255,255,0.85)",
-                letterSpacing: 2,
-                margin: 0,
-                textTransform: "uppercase",
-                fontFamily: "'DM Sans', sans-serif",
-              }}
-            >
-              Total Monthly Recurring
-            </motion.p>
-            <motion.p
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{
-                opacity: 1,
-                scale: [1, 1.02, 1],
-              }}
-              transition={{
-                delay: 0.3,
-                type: "spring" as const,
-                stiffness: 150,
-                scale: {
-                  repeat: Infinity,
-                  duration: 2,
-                  ease: "easeInOut",
-                },
-              }}
-              style={{
-                fontSize: 48,
-                fontWeight: 800,
-                color: "#fff",
-                letterSpacing: "-2px",
-                margin: "4px 0",
-                fontFamily: "'DM Sans', sans-serif",
-              }}
-            >
-              ${totalMRR.toLocaleString()}
-            </motion.p>
-            <motion.p
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
-              style={{
-                fontSize: 13,
-                color: "rgba(255,255,255,0.85)",
-                margin: 0,
-                fontFamily: "'DM Sans', sans-serif",
-              }}
-            >
-              {totalSubs} active subscribers
-            </motion.p>
+    <div
+      style={{
+        ...s.card,
+        borderColor: open ? O.primary + "55" : O.cardBorder,
+        boxShadow:   open ? `0 4px 18px rgba(255,142,0,0.10)` : "none",
+      }}
+    >
+      {/* Header row */}
+      <div style={s.cardHeader} onClick={() => setOpen((o) => !o)}>
+        <div style={s.cardLeft}>
+          <div style={s.iconBadge}>
+            <meta.icon size={17} color={O.primary} />
           </div>
-          <motion.div
-            initial={{ scale: 0, rotate: -180 }}
-            animate={{
-              scale: 1,
-              rotate: 0,
-              y: [0, -5, 0],
-            }}
-            transition={{
-              delay: 0.5,
-              type: "spring" as const,
-              stiffness: 150,
-              y: {
-                repeat: Infinity,
-                duration: 3,
-                ease: "easeInOut",
-              },
-            }}
-            whileHover={{ rotate: 15, scale: 1.1 }}
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: 16,
-              background: "rgba(255,255,255,0.25)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <Gift size={26} color="#fff" />
-          </motion.div>
-        </motion.div>
+          <div style={{ minWidth: 0 }}>
+            <p style={s.cardName}>{name}</p>
+            <p style={s.cardAddr}>
+              {venue.address ??
+                venue.gpsLocation?.coordinates?.join(", ") ??
+                "No address"}
+            </p>
+          </div>
+        </div>
 
-        {/* Empty state */}
-        {monthlyVenues.length === 0 && (
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            style={{
-              color: "#aaa",
-              textAlign: "center",
-              padding: 48,
-              fontFamily: "'DM Sans', sans-serif",
-            }}
-          >
-            No venues with monthly billing.
-          </motion.p>
-        )}
-
-        {/* Venue cards grid */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="venue-grid"
-        >
-          {monthlyVenues.map((v) => (
-            <motion.div
-              key={v.id}
-              variants={cardVariants}
-              layout
-              whileHover={{
-                y: -4,
-                scale: 1.02,
-                boxShadow: "0 8px 24px rgba(255,166,41,0.22)",
-                transition: { duration: 0.2 },
-              }}
-              whileTap={{ scale: 0.98 }}
-              className="venue-card"
-            >
-              {/* Card Header */}
-              <div className="venue-card-header">
-                <motion.div
-                  whileHover={{ rotate: 5, scale: 1.1 }}
-                  transition={{ type: "spring" as const, stiffness: 300 }}
-                  className="venue-icon-wrap"
-                >
-                  <VenueIcon type={v.type} size={18} color="#fff" />
-                </motion.div>
-                <div>
-                  <p className="venue-name">{v.name}</p>
-                  <p className="venue-type">{v.type}</p>
-                </div>
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="venue-rate"
-                >
-                  <span className="venue-rate-num">${v.monthlyRate}</span>
-                  <span className="venue-rate-unit">/mo</span>
-                </motion.div>
-              </div>
-
-              {/* Stats */}
-              <div className="venue-stats">
-                {[
-                  {
-                    val: v.activeMonthlySubscriptions,
-                    label: "Active Subs",
-                    color: "#1a1a1a",
-                  },
-                  {
-                    val: `$${v.monthlyRate * v.activeMonthlySubscriptions}`,
-                    label: "MRR",
-                    color: "#FFA629",
-                  },
-                  {
-                    val: `${v.slots.booked}/${v.slots.total}`,
-                    label: "Slots Used",
-                    color: "#2aa8a0",
-                  },
-                ].map((item, i) => (
-                  <motion.div
-                    key={item.label}
-                    custom={i}
-                    variants={statItemVariants}
-                    initial="hidden"
-                    animate="visible"
-                    whileHover={{ scale: 1.05 }}
-                    className="stat-item"
-                  >
-                    <motion.p
-                      initial={{ opacity: 0, scale: 0.5 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{
-                        delay: 0.3 + i * 0.1,
-                        type: "spring" as const,
-                      }}
-                      className="stat-val"
-                      style={{ color: item.color }}
-                    >
-                      {item.val}
-                    </motion.p>
-                    <p className="stat-label">{item.label}</p>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
+        <div style={s.cardRight}>
+          {venue.monthlyChargeEnabled ? (
+            <span style={{ ...s.pill, color: O.success, background: O.successBg }}>
+              <CheckCircle2 size={10} style={{ marginRight: 4 }} />
+              ${venue.monthlyRate}/mo
+            </span>
+          ) : (
+            <span style={{ ...s.pill, color: O.textMuted, background: O.bgDeep }}>
+              Not set
+            </span>
+          )}
+          {open
+            ? <ChevronUp size={15} color={O.textMuted} />
+            : <ChevronDown size={15} color={O.textMuted} />}
+        </div>
       </div>
-    </>
-  );
-};
 
-export default MonthlyTab;
+      {/* Expanded panel */}
+      {open && (
+        <div style={s.panel}>
+          <div style={s.divider} />
+
+          {/* Toggle */}
+          <div style={s.switchRow}>
+            <div>
+              <p style={s.switchLabel}>Enable monthly plans</p>
+              <p style={s.switchSub}>
+                Let customers subscribe to this venue on a monthly basis.
+              </p>
+            </div>
+            <label style={{ cursor: "pointer", flexShrink: 0 }}>
+              <input
+                type="checkbox"
+                checked={enabled}
+                onChange={(e) => handleToggle(e.target.checked)}
+                style={{ display: "none" }}
+              />
+              <div style={{ ...s.track, background: enabled ? O.primary : O.border }}>
+                <div
+                  style={{
+                    ...s.thumb,
+                    transform: enabled ? "translateX(20px)" : "translateX(0)",
+                  }}
+                />
+              </div>
+            </label>
+          </div>
+
+          {/* Rate input */}
+          {enabled && (
+            <div style={{ marginBottom: 12 }}>
+              <p style={s.fieldLabel}>Monthly rate per slot</p>
+              <div
+                style={{
+                  ...s.rateRow,
+                  borderColor: error ? O.error : rateInput ? O.primary : O.borderMid,
+                  boxShadow: rateInput && !error
+                    ? `0 0 0 3px ${O.primaryGlow}`
+                    : "none",
+                }}
+              >
+                <span style={s.ratePrefix}>$</span>
+                <input
+                  type="number"
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                  value={rateInput}
+                  onChange={(e) => handleRateChange(e.target.value)}
+                  style={s.rateInput}
+                />
+                <span style={s.rateSuffix}>/mo</span>
+              </div>
+
+              {rate > 0 && (
+                <div style={s.preview}>
+                  <div style={s.previewRow}>
+                    <span style={s.previewLabel}>Monthly per slot</span>
+                    <span style={s.previewVal}>${rate.toFixed(2)}/mo</span>
+                  </div>
+                  <div style={s.previewRow}>
+                    <span style={s.previewLabel}>Annual per slot</span>
+                    <span style={s.previewVal}>${(rate * 12).toFixed(2)}/yr</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Feedback */}
+          {error && (
+            <div
+              style={{
+                ...s.feedback,
+                color: O.error,
+                background: O.errorBg,
+                borderColor: O.errorBorder,
+              }}
+            >
+              <AlertCircle size={13} />
+              <span>{error}</span>
+            </div>
+          )}
+          {success && (
+            <div
+              style={{
+                ...s.feedback,
+                color: O.success,
+                background: O.successBg,
+                borderColor: O.success + "44",
+              }}
+            >
+              <CheckCircle2 size={13} />
+              <span>Monthly settings saved!</span>
+            </div>
+          )}
+
+          {/* Save */}
+          <button
+            onClick={handleSave}
+            disabled={saving || !hasChanges}
+            style={{
+              ...s.saveBtn,
+              background:  saving || !hasChanges ? O.primaryDark : O.primary,
+              opacity:     saving || !hasChanges ? 0.5 : 1,
+              cursor:      saving || !hasChanges ? "not-allowed" : "pointer",
+            }}
+          >
+            {saving ? (
+              <>
+                <Loader2
+                  size={14}
+                  style={{ marginRight: 6, animation: "spin 1s linear infinite" }}
+                />
+                Saving…
+              </>
+            ) : (
+              <>
+                <Repeat size={14} style={{ marginRight: 6 }} />
+                Save Monthly Settings
+              </>
+            )}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Section ──────────────────────────────────────────────────────────────────
+
+interface SectionProps {
+  meta: VenueMeta;
+  token?: string;
+}
+
+function Section({ meta, token }: SectionProps) {
+  const [venues,  setVenues]  = useState<RawVenue[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState<string | null>(null);
+  const [filter,  setFilter]  = useState<FilterKey>("all");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await axiosInstance.get(meta.searchPath, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const raw: unknown = res.data?.data ?? res.data ?? [];
+      setVenues(Array.isArray(raw) ? (raw as RawVenue[]) : []);
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        `Failed to load ${meta.label}.`;
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  }, [meta, token]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleUpdated = (id: string, patch: MonthlyPatch) =>
+    setVenues((prev) => prev.map((v) => (v._id === id ? { ...v, ...patch } : v)));
+
+  const enabledCount  = venues.filter((v) =>  v.monthlyChargeEnabled).length;
+  const disabledCount = venues.filter((v) => !v.monthlyChargeEnabled).length;
+
+  const filtered = venues.filter((v) => {
+    if (filter === "enabled")  return  v.monthlyChargeEnabled;
+    if (filter === "disabled") return !v.monthlyChargeEnabled;
+    return true;
+  });
+
+  const filters: { key: FilterKey; label: string }[] = [
+    { key: "all",      label: `All (${venues.length})`     },
+    { key: "enabled",  label: `Enabled (${enabledCount})`  },
+    { key: "disabled", label: `Not set (${disabledCount})` },
+  ];
+
+  const Icon = meta.icon;
+
+  return (
+    <section style={s.section}>
+      {/* Section header */}
+      <div style={s.secHead}>
+        <div style={s.secTitle}>
+          <Icon size={19} color={O.primary} />
+          <h2 style={s.secH2}>{meta.label}</h2>
+          <span style={s.badge}>{venues.length}</span>
+        </div>
+
+        {venues.length > 0 && (
+          <div style={s.filterRow}>
+            {filters.map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setFilter(f.key)}
+                style={{
+                  ...s.filterPill,
+                  background:  filter === f.key ? O.primary    : "transparent",
+                  color:       filter === f.key ? O.white      : O.textMuted,
+                  borderColor: filter === f.key ? O.primary    : O.borderMid,
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Loading */}
+      {loading && (
+        <div style={s.stateBox}>
+          <Loader2 size={22} color={O.primary} style={{ animation: "spin 1s linear infinite" }} />
+          <p style={s.stateText}>Loading {meta.label.toLowerCase()}…</p>
+        </div>
+      )}
+
+      {/* Error */}
+      {!loading && error && (
+        <div
+          style={{
+            ...s.feedback,
+            color: O.error,
+            background: O.errorBg,
+            borderColor: O.errorBorder,
+            marginBottom: 0,
+          }}
+        >
+          <AlertCircle size={14} />
+          <span style={{ flex: 1 }}>{error}</span>
+          <button onClick={load} style={s.retryBtn}>Retry</button>
+        </div>
+      )}
+
+      {/* Empty */}
+      {!loading && !error && venues.length === 0 && (
+        <div style={s.stateBox}>
+          <Icon size={30} color={O.border} />
+          <p style={s.stateText}>No {meta.label.toLowerCase()} found.</p>
+        </div>
+      )}
+
+      {/* Filter empty */}
+      {!loading && !error && venues.length > 0 && filtered.length === 0 && (
+        <div style={s.stateBox}>
+          <p style={s.stateText}>No venues match this filter.</p>
+        </div>
+      )}
+
+      {/* Cards */}
+      {!loading && !error && filtered.length > 0 && (
+        <div style={s.cardList}>
+          {filtered.map((v) => (
+            <VenueCard
+              key={v._id}
+              venue={v}
+              meta={meta}
+              token={token}
+              onUpdated={handleUpdated}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ─── Main export ──────────────────────────────────────────────────────────────
+
+export default function MonthlyTab({ token }: MonthlyTabProps) {
+  return (
+    <div style={s.page}>
+      {/* Page header */}
+      <div style={s.pageHead}>
+        <div style={s.pageIconWrap}>
+          <Repeat size={20} color={O.primary} />
+        </div>
+        <div>
+          <h1 style={s.pageTitle}>Monthly Plans</h1>
+          <p style={s.pageSub}>
+            Enable and configure monthly billing for your parking lots, garages,
+            and residences.
+          </p>
+        </div>
+      </div>
+
+      {VENUE_TYPES.map((meta) => (
+        <Section key={meta.key} meta={meta} token={token} />
+      ))}
+    </div>
+  );
+}
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
+const s: Record<string, CSSProperties> = {
+  page: {
+    maxWidth: 800,
+    margin: "0 auto",
+    padding: "28px 20px 64px",
+    fontFamily: "'DM Sans', sans-serif",
+  },
+
+  // page header
+  pageHead: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 14,
+    marginBottom: 32,
+  },
+  pageIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    background: O.primaryBg,
+    border: `1px solid ${O.primaryBorder}`,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    marginTop: 2,
+  },
+  pageTitle: {
+    fontSize: 24,
+    fontWeight: 800,
+    margin: 0,
+    color: O.text,
+    letterSpacing: "-0.3px",
+    fontFamily: "'Playfair Display', serif",
+  },
+  pageSub: {
+    fontSize: 13,
+    color: O.textMuted,
+    margin: "4px 0 0",
+    lineHeight: 1.5,
+  },
+
+  // section
+  section: { marginBottom: 36 },
+  secHead: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    flexWrap: "wrap" as const,
+    gap: 10,
+    marginBottom: 12,
+  },
+  secTitle: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+  },
+  secH2: {
+    fontSize: 16,
+    fontWeight: 700,
+    margin: 0,
+    color: O.text,
+  },
+  badge: {
+    fontSize: 11,
+    fontWeight: 700,
+    padding: "2px 9px",
+    borderRadius: 20,
+    color: O.textMuted,
+    background: O.bgDeep,
+  },
+  filterRow: {
+    display: "flex",
+    gap: 6,
+    flexWrap: "wrap" as const,
+  },
+  filterPill: {
+    fontSize: 11,
+    fontWeight: 700,
+    padding: "4px 12px",
+    borderRadius: 20,
+    border: "1.5px solid",
+    cursor: "pointer",
+    transition: "all 0.18s",
+    fontFamily: "'DM Sans', sans-serif",
+  },
+
+  // cards
+  cardList: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: 8,
+  },
+  card: {
+    background: O.card,
+    borderRadius: 14,
+    border: "1.5px solid",
+    transition: "border-color 0.2s, box-shadow 0.2s",
+    overflow: "hidden",
+  },
+  cardHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "13px 16px",
+    cursor: "pointer",
+    userSelect: "none" as const,
+    gap: 10,
+  },
+  cardLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: 11,
+    minWidth: 0,
+    flex: 1,
+  },
+  iconBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    background: O.primaryBg,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  cardName: {
+    fontSize: 14,
+    fontWeight: 700,
+    margin: 0,
+    color: O.text,
+    whiteSpace: "nowrap" as const,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    maxWidth: 340,
+  },
+  cardAddr: {
+    fontSize: 11,
+    color: O.textMuted,
+    margin: "2px 0 0",
+    whiteSpace: "nowrap" as const,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    maxWidth: 340,
+  },
+  cardRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    flexShrink: 0,
+  },
+  pill: {
+    display: "inline-flex",
+    alignItems: "center",
+    fontSize: 11,
+    fontWeight: 700,
+    padding: "3px 10px",
+    borderRadius: 20,
+  },
+
+  // panel
+  panel: { padding: "0 16px 16px" },
+  divider: {
+    height: 1,
+    background: O.border,
+    marginBottom: 14,
+  },
+
+  // toggle
+  switchRow: {
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 14,
+    marginBottom: 14,
+  },
+  switchLabel: {
+    fontSize: 13,
+    fontWeight: 700,
+    margin: 0,
+    color: O.text,
+  },
+  switchSub: {
+    fontSize: 12,
+    color: O.textMuted,
+    margin: "3px 0 0",
+    lineHeight: 1.4,
+  },
+  track: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    position: "relative" as const,
+    transition: "background 0.2s",
+  },
+  thumb: {
+    position: "absolute" as const,
+    top: 3,
+    left: 3,
+    width: 18,
+    height: 18,
+    borderRadius: "50%",
+    background: O.white,
+    transition: "transform 0.2s",
+    boxShadow: "0 1px 4px rgba(0,0,0,0.22)",
+  },
+
+  // rate
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: 600,
+    color: O.textMuted,
+    marginBottom: 7,
+  },
+  rateRow: {
+    display: "flex",
+    alignItems: "center",
+    border: "1.5px solid",
+    borderRadius: 10,
+    padding: "0 13px",
+    height: 48,
+    background: O.bg,
+    transition: "border-color 0.2s, box-shadow 0.2s",
+  },
+  ratePrefix: {
+    fontSize: 18,
+    fontWeight: 700,
+    color: O.textMuted,
+    marginRight: 5,
+  },
+  rateInput: {
+    flex: 1,
+    border: "none",
+    background: "transparent",
+    fontSize: 18,
+    fontWeight: 700,
+    color: O.text,
+    outline: "none",
+    minWidth: 0,
+    fontFamily: "'DM Sans', sans-serif",
+  },
+  rateSuffix: {
+    fontSize: 12,
+    color: O.textMuted,
+  },
+
+  // preview
+  preview: {
+    marginTop: 10,
+    background: O.bgDeep,
+    borderRadius: 10,
+    padding: "10px 13px",
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: 6,
+  },
+  previewRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  previewLabel: { fontSize: 12, color: O.textMuted },
+  previewVal:   { fontSize: 13, fontWeight: 700, color: O.text },
+
+  // feedback
+  feedback: {
+    display: "flex",
+    alignItems: "center",
+    gap: 7,
+    fontSize: 12,
+    fontWeight: 600,
+    border: "1px solid",
+    borderRadius: 8,
+    padding: "8px 12px",
+    marginBottom: 10,
+  },
+
+  // save btn
+  saveBtn: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    padding: "11px",
+    borderRadius: 10,
+    fontSize: 13,
+    fontWeight: 700,
+    color: O.white,
+    border: "none",
+    fontFamily: "'DM Sans', sans-serif",
+    transition: "opacity 0.2s, background 0.2s, transform 0.15s",
+  },
+
+  retryBtn: {
+    background: "none",
+    border: "none",
+    color: O.error,
+    fontWeight: 700,
+    cursor: "pointer",
+    fontSize: 12,
+    textDecoration: "underline",
+    padding: 0,
+    flexShrink: 0,
+  },
+
+  // states
+  stateBox: {
+    display: "flex",
+    flexDirection: "column" as const,
+    alignItems: "center",
+    gap: 10,
+    padding: "30px 0",
+    borderRadius: 14,
+    border: `1.5px dashed ${O.borderMid}`,
+    background: O.bgPage,
+  },
+  stateText: {
+    fontSize: 13,
+    color: O.textMuted,
+    margin: 0,
+  },
+};
