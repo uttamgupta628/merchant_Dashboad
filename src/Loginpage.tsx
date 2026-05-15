@@ -17,7 +17,6 @@ const NAVBAR_HEIGHT = 80;
 /* ANIMATION EASING (FIXED TYPES)              */
 /* ─────────────────────────────────────────── */
 
-// Framer Motion requires specific tuple types for easing
 const easeOutCubic: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94];
 const easeInOut: [number, number, number, number] = [0.42, 0, 0.58, 1];
 
@@ -25,7 +24,6 @@ const easeInOut: [number, number, number, number] = [0.42, 0, 0.58, 1];
 /* ANIMATION VARIANTS                          */
 /* ─────────────────────────────────────────── */
 
-// Stagger children animation for the form
 const formVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -37,7 +35,6 @@ const formVariants = {
   },
 };
 
-// Individual form elements animation
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: {
@@ -49,7 +46,6 @@ const itemVariants = {
   },
 };
 
-// Card entrance animation
 const cardVariants = {
   hidden: { opacity: 0, y: 30, scale: 0.97 },
   visible: {
@@ -63,7 +59,6 @@ const cardVariants = {
   },
 };
 
-// Badge animation
 const badgeVariants = {
   hidden: { opacity: 0, x: -20 },
   visible: {
@@ -76,7 +71,6 @@ const badgeVariants = {
   },
 };
 
-// Error message animation
 const errorVariants = {
   hidden: { opacity: 0, y: -10, height: 0 },
   visible: {
@@ -97,7 +91,6 @@ const errorVariants = {
   },
 };
 
-// Welcome text animation
 const welcomeVariants = {
   hidden: { opacity: 0, y: 50 },
   visible: {
@@ -117,8 +110,8 @@ const welcomeVariants = {
 const STATUS_MAP: Record<number, string> = {
   400: "Invalid request.",
   401: "Invalid email or password.",
-  403: "Access denied. Merchant accounts only.",
-  404: "No merchant account found.",
+  403: "Access denied. Your account may be deactivated.",
+  404: "No account found with this email.",
   500: "Server error. Try again later.",
 };
 
@@ -193,7 +186,9 @@ export default function Loginpage({ onLogin }: LoginProps) {
     return ok;
   };
 
-  /* LOGIN */
+  /* ─────────────────────────────────────────── */
+  /* LOGIN — tries merchant first, then sub-acct */
+  /* ─────────────────────────────────────────── */
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
@@ -201,29 +196,87 @@ export default function Loginpage({ onLogin }: LoginProps) {
     setLoading(true);
     setError("");
 
+    const trimmedEmail = email.trim();
+
+    // ── 1. Try merchant login ──────────────────
     try {
       const res = await axiosInstance.post("/users/login", {
-        email,
+        email: trimmedEmail,
         password,
         userType: "merchant",
       });
 
-      console.log("LOGIN RESPONSE =>", res.data);
-
       const token = res.data.token;
       const user = res.data.user;
 
-      if (!token || !user) {
-        throw new Error("Invalid response from server");
-      }
+      if (!token || !user) throw new Error("Invalid response from server");
 
       onLogin(token, user);
-    } catch (err) {
-      console.error(err);
-      setError(getErrorMessage(err));
-    } finally {
-      setLoading(false);
+      return; // ✅ merchant login succeeded — done
+    } catch (merchantErr: unknown) {
+      const status = (merchantErr as any)?.response?.status;
+
+      // Wrong password for a real merchant → stop here
+      if (status === 401) {
+        setError("Invalid email or password.");
+        setLoading(false);
+        return;
+      }
+
+      // 403 = unverified merchant account
+      if (status === 403) {
+        setError("Please verify your email before logging in.");
+        setLoading(false);
+        return;
+      }
+
+      // Only fall through to sub-account on 404 (email not a merchant)
+      if (status !== 404) {
+        setError(getErrorMessage(merchantErr));
+        setLoading(false);
+        return;
+      }
+      // 404 → email not found in merchant collection, try sub-account below
     }
+
+    // ── 2. Fallback: try sub-account login ─────
+    // NOTE: Do NOT send userType here — the sub-account endpoint has its own
+    // schema and does NOT use the same loginUser handler.
+    try {
+  const res = await axiosInstance.post("/merchants/sub-account/login", {
+  email: trimmedEmail,
+  password,
+});
+
+  const token = res.data.data?.token ?? res.data.token;
+  const merchantId = res.data.data?.merchantId ?? res.data.merchantId;
+
+  if (!token) throw new Error("Invalid response from server");
+
+  // Build a minimal user object from what the backend returns
+  // (sub-account login doesn't return a full user object)
+  const user = {
+    _id: merchantId,
+    email: trimmedEmail,
+    userType: "subAccount",
+  } as unknown as MerchantUser;
+
+  onLogin(token, user);
+} catch (subErr: unknown) {
+  const subStatus = (subErr as any)?.response?.status;
+
+  if (subStatus === 403) {
+    setError("Your sub-account has been deactivated. Contact the account owner.");
+  } else if (subStatus === 404) {
+    setError("No account found with this email.");
+  } else if (subStatus === 401) {
+    setError("Invalid email or password.");
+  } else {
+    setError(getErrorMessage(subErr));
+  }
+} finally {
+  setLoading(false);
+}
   };
 
   return (
@@ -263,7 +316,6 @@ export default function Loginpage({ onLogin }: LoginProps) {
           justifyContent: "center",
         }}
       >
-        {/* Navbar content constrained to 1920px */}
         <div
           style={{
             maxWidth: "1920px",
@@ -328,7 +380,6 @@ export default function Loginpage({ onLogin }: LoginProps) {
           padding: "0 clamp(24px, 4vw, 48px)",
         }}
       >
-        {/* Content constrained to 1920px */}
         <div
           style={{
             maxWidth: "1920px",
