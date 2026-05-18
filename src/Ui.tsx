@@ -52,7 +52,7 @@ export const PeriodToggle = ({
     width: 'fit-content', marginBottom: 22,
     border: `1.5px solid ${C.border}`,
   }}>
-    {['daily', 'weekly', 'monthly'].map(p => (
+    {['daily', 'weekly', 'monthly', 'yearly'].map(p => (
       <button key={p} onClick={() => onChange(p)} className="period-btn" style={{
         background: period === p
           ? `linear-gradient(135deg, ${C.brand}, ${C.brandDark})`

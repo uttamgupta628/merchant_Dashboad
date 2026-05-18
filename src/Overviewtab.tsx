@@ -143,20 +143,34 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
   const p = period as keyof PeriodTotals;
 
+  // Safe access with fallbacks
+  const safeTotalEarnings = data.totalEarnings || { daily: 0, weekly: 0, monthly: 0, yearly: 0 };
+  const safeTotalBookings = data.totalBookings || { daily: 0, weekly: 0, monthly: 0, yearly: 0 };
+
+  const getPeriodLabel = () => {
+    switch(period) {
+      case "daily": return "Today";
+      case "weekly": return "This Week";
+      case "monthly": return "This Month";
+      case "yearly": return "This Year";
+      default: return period;
+    }
+  };
+
   const kpiCards = [
     {
       label: "Total Revenue",
-      value: fmtCurrency(data.totalEarnings[p]),
-      sub: period,
+      value: fmtCurrency(safeTotalEarnings[p] || 0),
+      sub: getPeriodLabel(),
       icon: DollarSign,
-      trend: "+12.4%",
+      trend: period === "yearly" ? undefined : "+12.4%",
     },
     {
       label: "Total Bookings",
-      value: String(data.totalBookings[p]),
-      sub: period,
+      value: String(safeTotalBookings[p] || 0),
+      sub: getPeriodLabel(),
       icon: CalendarDays,
-      trend: "+8.1%",
+      trend: period === "yearly" ? undefined : "+8.1%",
     },
     {
       label: "Monthly MRR",
@@ -177,7 +191,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
       type,
       total: data.venues
         .filter((v) => v.type === type)
-        .reduce((s, v) => s + v.earnings[p], 0),
+        .reduce((s, v) => s + ((v.earnings?.[p] as number) || 0), 0),
     }),
   );
 
@@ -534,7 +548,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                   <span
                     style={{ fontSize: 19, fontWeight: 800, color: O.white }}
                   >
-                    {fmtCurrency(v.earnings[p])}
+                    {fmtCurrency((v.earnings?.[p] as number) || 0)}
                   </span>
                 </motion.div>
               </div>

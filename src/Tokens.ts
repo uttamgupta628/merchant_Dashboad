@@ -46,6 +46,7 @@ export interface PeriodTotals {
   daily: number;
   weekly: number;
   monthly: number;
+  yearly: number; 
 }
 
 export interface RecentBooking {
@@ -144,6 +145,7 @@ export const PERIOD_LABEL: Record<string, string> = {
   daily: "Today",
   weekly: "This Week",
   monthly: "This Month",
+  yearly: "This Year", 
 };
 export const CAT_COLORS = [C.brand, C.purple, C.teal, C.success, C.warning];
 
@@ -158,8 +160,10 @@ export const STATUS_META: Record<
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-export const fmtCurrency = (n: number) =>
-  n >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${n.toFixed(0)}`;
+export const fmtCurrency = (value: number | undefined): string => {
+  if (value === undefined || value === null) return "$0";
+  return `$${value.toFixed(2)}`;
+};
 
 export const fmtDate = (iso: string) => {
   if (!iso) return "N/A";
