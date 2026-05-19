@@ -5,6 +5,7 @@ import {
   Grid,
   List,
   Repeat,
+  Clock,
   Shirt,
   Users,
   LogOut,
@@ -14,12 +15,13 @@ import {
 import { logoSrc } from "./assets/images";
 
 export const NAV_ITEMS = [
-  { key: "overview", label: "Overview", Icon: LayoutDashboard, badge: null },
-  { key: "slots", label: "Slots", Icon: Grid, badge: null },
-  { key: "bookings", label: "Bookings", Icon: List, badge: "12" },
-  { key: "monthly", label: "Monthly", Icon: Repeat, badge: null },
-  { key: "dryCleaning", label: "Laundry", Icon: Shirt, badge: "3" },
-  { key: "subAccounts", label: "Team", Icon: Users, badge: null },
+  { key: "overview",    label: "Overview", Icon: LayoutDashboard, badge: null },
+  { key: "slots",       label: "Slots",    Icon: Grid,            badge: null },
+  { key: "bookings",    label: "Bookings", Icon: List,            badge: "12" },
+  { key: "monthly",     label: "Monthly",  Icon: Repeat,          badge: null },
+  { key: "daily",       label: "Daily",    Icon: Clock,           badge: null },
+  { key: "dryCleaning", label: "Laundry",  Icon: Shirt,           badge: "3"  },
+  { key: "subAccounts", label: "Team",     Icon: Users,           badge: null },
 ];
 
 const S = {

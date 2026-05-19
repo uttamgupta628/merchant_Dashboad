@@ -7,7 +7,8 @@ import { Spinner, ErrorBanner } from "./Ui";
 import { OverviewTab } from "./Overviewtab";
 import { SlotsTab } from "./Slotstab";
 import { BookingsTab } from "./Bookingstab";
-import  MonthlyTab   from "./Monthlytab";
+import MonthlyTab from "./Monthlytab";
+import DailyTab from "./Dailytab";
 import { DryCleaningTab } from "./Drycleaningtab";
 import { SubAccountsTab } from "./Subaccountstab";
 import { Menu, X } from "lucide-react";
@@ -206,10 +207,13 @@ export default function DashboardPage({
             className="dashboard-content"
             style={{ padding: "82px 32px 40px", minHeight: "100vh" }}
           >
+            {/* Tabs that fetch their own data — no stats dependency */}
             {activeTab === "dryCleaning" && <DryCleaningTab token={token} />}
             {activeTab === "subAccounts" && <SubAccountsTab />}
+            {activeTab === "daily"       && <DailyTab token={token} user={user} />}
 
-            {!["dryCleaning", "subAccounts"].includes(activeTab) &&
+            {/* Tabs that depend on the stats hook */}
+            {!["dryCleaning", "subAccounts", "daily"].includes(activeTab) &&
               (loading ? (
                 <Spinner />
               ) : error ? (
@@ -223,9 +227,9 @@ export default function DashboardPage({
                       onPeriodChange={setPeriod}
                     />
                   )}
-                  {activeTab === "slots" && <SlotsTab data={data} />}
+                  {activeTab === "slots"    && <SlotsTab data={data} />}
                   {activeTab === "bookings" && <BookingsTab data={data} />}
-                  {activeTab === "monthly" && <MonthlyTab data={data} token={token} />}
+                  {activeTab === "monthly"  && <MonthlyTab data={data} token={token} />}
                 </>
               ) : null)}
           </div>
