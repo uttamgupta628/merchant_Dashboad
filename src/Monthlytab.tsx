@@ -15,40 +15,34 @@ import axiosInstance from "./Axios";
 // ─── Theme ────────────────────────────────────────────────────────────────────
 
 const O = {
-  primary:     "#FFA629",
-  primaryDark: "#E08A00",
-  primaryBg:   "rgba(255,166,41,0.12)",
+  primary:      "#FFA629",
+  primaryDark:  "#E08A00",
+  primaryBg:    "rgba(255,166,41,0.12)",
   primaryBorder:"rgba(255,166,41,0.28)",
-  primaryGlow: "rgba(255,166,41,0.16)",
-  primarySoft: "rgba(255,166,41,0.18)",
-
-  text:        "#1A0F00",
-  textMuted:   "#7A5C30",
-
-  bg:          "#FFFAF3",
-  bgDeep:      "#FFF1D6",
-  bgPage:      "#FFF8EE",
-
-  border:      "rgba(255,166,41,0.20)",
-  borderMid:   "rgba(255,166,41,0.30)",
-
-  card:        "#FFFFFF",
-  cardBorder:  "rgba(255,166,41,0.18)",
-
-  success:     "#16a34a",
-  successBg:   "rgba(22,163,74,0.09)",
-
-  error:       "#993C1D",
-  errorBg:     "#FAECE7",
-  errorBorder: "rgba(216,90,48,0.30)",
-
-  white:       "#FFFFFF",
+  primaryGlow:  "rgba(255,166,41,0.16)",
+  primarySoft:  "rgba(255,166,41,0.18)",
+  text:         "#1A0F00",
+  textMuted:    "#7A5C30",
+  bg:           "#FFFAF3",
+  bgDeep:       "#FFF1D6",
+  bgPage:       "#FFF8EE",
+  border:       "rgba(255,166,41,0.20)",
+  borderMid:    "rgba(255,166,41,0.30)",
+  card:         "#FFFFFF",
+  cardBorder:   "rgba(255,166,41,0.18)",
+  success:      "#16a34a",
+  successBg:    "rgba(22,163,74,0.09)",
+  error:        "#993C1D",
+  errorBg:      "#FAECE7",
+  errorBorder:  "rgba(216,90,48,0.30)",
+  white:        "#FFFFFF",
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface RawVenue {
   _id: string;
+  owner: string;
   parkingName?: string;
   garageName?: string;
   residenceName?: string;
@@ -108,6 +102,7 @@ type FilterKey = "all" | "enabled" | "disabled";
 interface MonthlyTabProps {
   token?: string;
   data?: unknown;
+  user?: { _id?: string; firstName?: string };
 }
 
 // ─── VenueCard ────────────────────────────────────────────────────────────────
@@ -120,14 +115,14 @@ interface VenueCardProps {
 }
 
 function VenueCard({ venue, meta, token, onUpdated }: VenueCardProps) {
-  const [open, setOpen]           = useState(false);
-  const [enabled, setEnabled]     = useState(venue.monthlyChargeEnabled);
-  const [rate, setRate]           = useState(venue.monthlyRate);
+  const [open,      setOpen]      = useState(false);
+  const [enabled,   setEnabled]   = useState(venue.monthlyChargeEnabled);
+  const [rate,      setRate]      = useState(venue.monthlyRate);
   const [rateInput, setRateInput] = useState(
     venue.monthlyRate > 0 ? String(venue.monthlyRate) : ""
   );
-  const [saving, setSaving]   = useState(false);
-  const [error, setError]     = useState<string | null>(null);
+  const [saving,  setSaving]  = useState(false);
+  const [error,   setError]   = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   const name = (venue[meta.nameKey] as string | undefined) ?? "Unnamed";
@@ -157,7 +152,12 @@ function VenueCard({ venue, meta, token, onUpdated }: VenueCardProps) {
     try {
       await axiosInstance.patch(
         "/merchants/monthly-settings",
-        { venueType: meta.venueType, venueId: venue._id, monthlyChargeEnabled: enabled, monthlyRate: rate },
+        {
+          venueType: meta.venueType,
+          venueId: venue._id,
+          monthlyChargeEnabled: enabled,
+          monthlyRate: rate,
+        },
         { headers: token ? { Authorization: `Bearer ${token}` } : {} }
       );
       setSuccess(true);
@@ -165,8 +165,8 @@ function VenueCard({ venue, meta, token, onUpdated }: VenueCardProps) {
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: unknown) {
       const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        "Failed to save. Please try again.";
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message ?? "Failed to save. Please try again.";
       setError(msg);
     } finally {
       setSaving(false);
@@ -291,27 +291,13 @@ function VenueCard({ venue, meta, token, onUpdated }: VenueCardProps) {
 
           {/* Feedback */}
           {error && (
-            <div
-              style={{
-                ...s.feedback,
-                color: O.error,
-                background: O.errorBg,
-                borderColor: O.errorBorder,
-              }}
-            >
+            <div style={{ ...s.feedback, color: O.error, background: O.errorBg, borderColor: O.errorBorder }}>
               <AlertCircle size={13} />
               <span>{error}</span>
             </div>
           )}
           {success && (
-            <div
-              style={{
-                ...s.feedback,
-                color: O.success,
-                background: O.successBg,
-                borderColor: O.success + "44",
-              }}
-            >
+            <div style={{ ...s.feedback, color: O.success, background: O.successBg, borderColor: O.success + "44" }}>
               <CheckCircle2 size={13} />
               <span>Monthly settings saved!</span>
             </div>
@@ -323,17 +309,14 @@ function VenueCard({ venue, meta, token, onUpdated }: VenueCardProps) {
             disabled={saving || !hasChanges}
             style={{
               ...s.saveBtn,
-              background:  saving || !hasChanges ? O.primaryDark : O.primary,
-              opacity:     saving || !hasChanges ? 0.5 : 1,
-              cursor:      saving || !hasChanges ? "not-allowed" : "pointer",
+              background: saving || !hasChanges ? O.primaryDark : O.primary,
+              opacity:    saving || !hasChanges ? 0.5 : 1,
+              cursor:     saving || !hasChanges ? "not-allowed" : "pointer",
             }}
           >
             {saving ? (
               <>
-                <Loader2
-                  size={14}
-                  style={{ marginRight: 6, animation: "spin 1s linear infinite" }}
-                />
+                <Loader2 size={14} style={{ marginRight: 6, animation: "spin 1s linear infinite" }} />
                 Saving…
               </>
             ) : (
@@ -354,9 +337,10 @@ function VenueCard({ venue, meta, token, onUpdated }: VenueCardProps) {
 interface SectionProps {
   meta: VenueMeta;
   token?: string;
+  merchantId?: string;
 }
 
-function Section({ meta, token }: SectionProps) {
+function Section({ meta, token, merchantId }: SectionProps) {
   const [venues,  setVenues]  = useState<RawVenue[]>([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
@@ -366,20 +350,25 @@ function Section({ meta, token }: SectionProps) {
     setLoading(true);
     setError(null);
     try {
-      const res = await axiosInstance.get(meta.searchPath, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const res = await axiosInstance.get(meta.searchPath);
       const raw: unknown = res.data?.data ?? res.data ?? [];
-      setVenues(Array.isArray(raw) ? (raw as RawVenue[]) : []);
+      const all: RawVenue[] = Array.isArray(raw) ? (raw as RawVenue[]) : [];
+
+      // Filter to only venues owned by the current merchant
+      const owned = merchantId
+        ? all.filter((v) => v.owner === merchantId)
+        : all;
+
+      setVenues(owned);
     } catch (err: unknown) {
       const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        `Failed to load ${meta.label}.`;
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message ?? `Failed to load ${meta.label}.`;
       setError(msg);
     } finally {
       setLoading(false);
     }
-  }, [meta, token]);
+  }, [meta.searchPath, meta.label, merchantId]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -405,7 +394,6 @@ function Section({ meta, token }: SectionProps) {
 
   return (
     <section style={s.section}>
-      {/* Section header */}
       <div style={s.secHead}>
         <div style={s.secTitle}>
           <Icon size={19} color={O.primary} />
@@ -421,9 +409,9 @@ function Section({ meta, token }: SectionProps) {
                 onClick={() => setFilter(f.key)}
                 style={{
                   ...s.filterPill,
-                  background:  filter === f.key ? O.primary    : "transparent",
-                  color:       filter === f.key ? O.white      : O.textMuted,
-                  borderColor: filter === f.key ? O.primary    : O.borderMid,
+                  background:  filter === f.key ? O.primary     : "transparent",
+                  color:       filter === f.key ? O.white       : O.textMuted,
+                  borderColor: filter === f.key ? O.primary     : O.borderMid,
                 }}
               >
                 {f.label}
@@ -433,7 +421,6 @@ function Section({ meta, token }: SectionProps) {
         )}
       </div>
 
-      {/* Loading */}
       {loading && (
         <div style={s.stateBox}>
           <Loader2 size={22} color={O.primary} style={{ animation: "spin 1s linear infinite" }} />
@@ -441,24 +428,14 @@ function Section({ meta, token }: SectionProps) {
         </div>
       )}
 
-      {/* Error */}
       {!loading && error && (
-        <div
-          style={{
-            ...s.feedback,
-            color: O.error,
-            background: O.errorBg,
-            borderColor: O.errorBorder,
-            marginBottom: 0,
-          }}
-        >
+        <div style={{ ...s.feedback, color: O.error, background: O.errorBg, borderColor: O.errorBorder, marginBottom: 0 }}>
           <AlertCircle size={14} />
           <span style={{ flex: 1 }}>{error}</span>
           <button onClick={load} style={s.retryBtn}>Retry</button>
         </div>
       )}
 
-      {/* Empty */}
       {!loading && !error && venues.length === 0 && (
         <div style={s.stateBox}>
           <Icon size={30} color={O.border} />
@@ -466,14 +443,12 @@ function Section({ meta, token }: SectionProps) {
         </div>
       )}
 
-      {/* Filter empty */}
       {!loading && !error && venues.length > 0 && filtered.length === 0 && (
         <div style={s.stateBox}>
           <p style={s.stateText}>No venues match this filter.</p>
         </div>
       )}
 
-      {/* Cards */}
       {!loading && !error && filtered.length > 0 && (
         <div style={s.cardList}>
           {filtered.map((v) => (
@@ -493,10 +468,11 @@ function Section({ meta, token }: SectionProps) {
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
-export default function MonthlyTab({ token }: MonthlyTabProps) {
+export default function MonthlyTab({ token, user }: MonthlyTabProps) {
+  console.log("MonthlyTab user:", user); 
+  const merchantId = user?._id;
   return (
     <div style={s.page}>
-      {/* Page header */}
       <div style={s.pageHead}>
         <div style={s.pageIconWrap}>
           <Repeat size={20} color={O.primary} />
@@ -511,7 +487,7 @@ export default function MonthlyTab({ token }: MonthlyTabProps) {
       </div>
 
       {VENUE_TYPES.map((meta) => (
-        <Section key={meta.key} meta={meta} token={token} />
+        <Section key={meta.key} meta={meta} token={token} merchantId={merchantId} />
       ))}
     </div>
   );
@@ -520,324 +496,56 @@ export default function MonthlyTab({ token }: MonthlyTabProps) {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s: Record<string, CSSProperties> = {
-  page: {
-    maxWidth: 800,
-    margin: "0 auto",
-    padding: "28px 20px 64px",
-    fontFamily: "'DM Sans', sans-serif",
-  },
+  page:        { maxWidth: 800, margin: "0 auto", padding: "28px 20px 64px", fontFamily: "'DM Sans', sans-serif" },
+  pageHead:    { display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 32 },
+  pageIconWrap:{ width: 42, height: 42, borderRadius: 12, background: O.primaryBg, border: `1px solid ${O.primaryBorder}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 },
+  pageTitle:   { fontSize: 24, fontWeight: 800, margin: 0, color: O.text, letterSpacing: "-0.3px", fontFamily: "'Playfair Display', serif" },
+  pageSub:     { fontSize: 13, color: O.textMuted, margin: "4px 0 0", lineHeight: 1.5 },
 
-  // page header
-  pageHead: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: 14,
-    marginBottom: 32,
-  },
-  pageIconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    background: O.primaryBg,
-    border: `1px solid ${O.primaryBorder}`,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-    marginTop: 2,
-  },
-  pageTitle: {
-    fontSize: 24,
-    fontWeight: 800,
-    margin: 0,
-    color: O.text,
-    letterSpacing: "-0.3px",
-    fontFamily: "'Playfair Display', serif",
-  },
-  pageSub: {
-    fontSize: 13,
-    color: O.textMuted,
-    margin: "4px 0 0",
-    lineHeight: 1.5,
-  },
+  section:   { marginBottom: 36 },
+  secHead:   { display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" as const, gap: 10, marginBottom: 12 },
+  secTitle:  { display: "flex", alignItems: "center", gap: 8 },
+  secH2:     { fontSize: 16, fontWeight: 700, margin: 0, color: O.text },
+  badge:     { fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 20, color: O.textMuted, background: O.bgDeep },
+  filterRow: { display: "flex", gap: 6, flexWrap: "wrap" as const },
+  filterPill:{ fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 20, border: "1.5px solid", cursor: "pointer", transition: "all 0.18s", fontFamily: "'DM Sans', sans-serif" },
 
-  // section
-  section: { marginBottom: 36 },
-  secHead: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    flexWrap: "wrap" as const,
-    gap: 10,
-    marginBottom: 12,
-  },
-  secTitle: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-  },
-  secH2: {
-    fontSize: 16,
-    fontWeight: 700,
-    margin: 0,
-    color: O.text,
-  },
-  badge: {
-    fontSize: 11,
-    fontWeight: 700,
-    padding: "2px 9px",
-    borderRadius: 20,
-    color: O.textMuted,
-    background: O.bgDeep,
-  },
-  filterRow: {
-    display: "flex",
-    gap: 6,
-    flexWrap: "wrap" as const,
-  },
-  filterPill: {
-    fontSize: 11,
-    fontWeight: 700,
-    padding: "4px 12px",
-    borderRadius: 20,
-    border: "1.5px solid",
-    cursor: "pointer",
-    transition: "all 0.18s",
-    fontFamily: "'DM Sans', sans-serif",
-  },
+  cardList:   { display: "flex", flexDirection: "column" as const, gap: 8 },
+  card:       { background: O.card, borderRadius: 14, border: "1.5px solid", transition: "border-color 0.2s, box-shadow 0.2s", overflow: "hidden" },
+  cardHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", cursor: "pointer", userSelect: "none" as const, gap: 10 },
+  cardLeft:   { display: "flex", alignItems: "center", gap: 11, minWidth: 0, flex: 1 },
+  iconBadge:  { width: 36, height: 36, borderRadius: 10, background: O.primaryBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  cardName:   { fontSize: 14, fontWeight: 700, margin: 0, color: O.text, whiteSpace: "nowrap" as const, overflow: "hidden", textOverflow: "ellipsis", maxWidth: 340 },
+  cardAddr:   { fontSize: 11, color: O.textMuted, margin: "2px 0 0", whiteSpace: "nowrap" as const, overflow: "hidden", textOverflow: "ellipsis", maxWidth: 340 },
+  cardRight:  { display: "flex", alignItems: "center", gap: 10, flexShrink: 0 },
+  pill:       { display: "inline-flex", alignItems: "center", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20 },
 
-  // cards
-  cardList: {
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: 8,
-  },
-  card: {
-    background: O.card,
-    borderRadius: 14,
-    border: "1.5px solid",
-    transition: "border-color 0.2s, box-shadow 0.2s",
-    overflow: "hidden",
-  },
-  cardHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "13px 16px",
-    cursor: "pointer",
-    userSelect: "none" as const,
-    gap: 10,
-  },
-  cardLeft: {
-    display: "flex",
-    alignItems: "center",
-    gap: 11,
-    minWidth: 0,
-    flex: 1,
-  },
-  iconBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    background: O.primaryBg,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  cardName: {
-    fontSize: 14,
-    fontWeight: 700,
-    margin: 0,
-    color: O.text,
-    whiteSpace: "nowrap" as const,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    maxWidth: 340,
-  },
-  cardAddr: {
-    fontSize: 11,
-    color: O.textMuted,
-    margin: "2px 0 0",
-    whiteSpace: "nowrap" as const,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    maxWidth: 340,
-  },
-  cardRight: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    flexShrink: 0,
-  },
-  pill: {
-    display: "inline-flex",
-    alignItems: "center",
-    fontSize: 11,
-    fontWeight: 700,
-    padding: "3px 10px",
-    borderRadius: 20,
-  },
+  panel:   { padding: "0 16px 16px" },
+  divider: { height: 1, background: O.border, marginBottom: 14 },
 
-  // panel
-  panel: { padding: "0 16px 16px" },
-  divider: {
-    height: 1,
-    background: O.border,
-    marginBottom: 14,
-  },
+  switchRow:   { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14, marginBottom: 14 },
+  switchLabel: { fontSize: 13, fontWeight: 700, margin: 0, color: O.text },
+  switchSub:   { fontSize: 12, color: O.textMuted, margin: "3px 0 0", lineHeight: 1.4 },
+  track:       { width: 44, height: 24, borderRadius: 12, position: "relative" as const, transition: "background 0.2s" },
+  thumb:       { position: "absolute" as const, top: 3, left: 3, width: 18, height: 18, borderRadius: "50%", background: O.white, transition: "transform 0.2s", boxShadow: "0 1px 4px rgba(0,0,0,0.22)" },
 
-  // toggle
-  switchRow: {
-    display: "flex",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: 14,
-    marginBottom: 14,
-  },
-  switchLabel: {
-    fontSize: 13,
-    fontWeight: 700,
-    margin: 0,
-    color: O.text,
-  },
-  switchSub: {
-    fontSize: 12,
-    color: O.textMuted,
-    margin: "3px 0 0",
-    lineHeight: 1.4,
-  },
-  track: {
-    width: 44,
-    height: 24,
-    borderRadius: 12,
-    position: "relative" as const,
-    transition: "background 0.2s",
-  },
-  thumb: {
-    position: "absolute" as const,
-    top: 3,
-    left: 3,
-    width: 18,
-    height: 18,
-    borderRadius: "50%",
-    background: O.white,
-    transition: "transform 0.2s",
-    boxShadow: "0 1px 4px rgba(0,0,0,0.22)",
-  },
+  fieldLabel: { fontSize: 12, fontWeight: 600, color: O.textMuted, marginBottom: 7 },
+  rateRow:    { display: "flex", alignItems: "center", border: "1.5px solid", borderRadius: 10, padding: "0 13px", height: 48, background: O.bg, transition: "border-color 0.2s, box-shadow 0.2s" },
+  ratePrefix: { fontSize: 18, fontWeight: 700, color: O.textMuted, marginRight: 5 },
+  rateInput:  { flex: 1, border: "none", background: "transparent", fontSize: 18, fontWeight: 700, color: O.text, outline: "none", minWidth: 0, fontFamily: "'DM Sans', sans-serif" },
+  rateSuffix: { fontSize: 12, color: O.textMuted },
 
-  // rate
-  fieldLabel: {
-    fontSize: 12,
-    fontWeight: 600,
-    color: O.textMuted,
-    marginBottom: 7,
-  },
-  rateRow: {
-    display: "flex",
-    alignItems: "center",
-    border: "1.5px solid",
-    borderRadius: 10,
-    padding: "0 13px",
-    height: 48,
-    background: O.bg,
-    transition: "border-color 0.2s, box-shadow 0.2s",
-  },
-  ratePrefix: {
-    fontSize: 18,
-    fontWeight: 700,
-    color: O.textMuted,
-    marginRight: 5,
-  },
-  rateInput: {
-    flex: 1,
-    border: "none",
-    background: "transparent",
-    fontSize: 18,
-    fontWeight: 700,
-    color: O.text,
-    outline: "none",
-    minWidth: 0,
-    fontFamily: "'DM Sans', sans-serif",
-  },
-  rateSuffix: {
-    fontSize: 12,
-    color: O.textMuted,
-  },
-
-  // preview
-  preview: {
-    marginTop: 10,
-    background: O.bgDeep,
-    borderRadius: 10,
-    padding: "10px 13px",
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: 6,
-  },
-  previewRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
+  preview:      { marginTop: 10, background: O.bgDeep, borderRadius: 10, padding: "10px 13px", display: "flex", flexDirection: "column" as const, gap: 6 },
+  previewRow:   { display: "flex", justifyContent: "space-between", alignItems: "center" },
   previewLabel: { fontSize: 12, color: O.textMuted },
   previewVal:   { fontSize: 13, fontWeight: 700, color: O.text },
 
-  // feedback
-  feedback: {
-    display: "flex",
-    alignItems: "center",
-    gap: 7,
-    fontSize: 12,
-    fontWeight: 600,
-    border: "1px solid",
-    borderRadius: 8,
-    padding: "8px 12px",
-    marginBottom: 10,
-  },
+  feedback: { display: "flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 600, border: "1px solid", borderRadius: 8, padding: "8px 12px", marginBottom: 10 },
 
-  // save btn
-  saveBtn: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "100%",
-    padding: "11px",
-    borderRadius: 10,
-    fontSize: 13,
-    fontWeight: 700,
-    color: O.white,
-    border: "none",
-    fontFamily: "'DM Sans', sans-serif",
-    transition: "opacity 0.2s, background 0.2s, transform 0.15s",
-  },
+  saveBtn: { display: "flex", alignItems: "center", justifyContent: "center", width: "100%", padding: "11px", borderRadius: 10, fontSize: 13, fontWeight: 700, color: O.white, border: "none", fontFamily: "'DM Sans', sans-serif", transition: "opacity 0.2s, background 0.2s" },
 
-  retryBtn: {
-    background: "none",
-    border: "none",
-    color: O.error,
-    fontWeight: 700,
-    cursor: "pointer",
-    fontSize: 12,
-    textDecoration: "underline",
-    padding: 0,
-    flexShrink: 0,
-  },
+  retryBtn: { background: "none", border: "none", color: O.error, fontWeight: 700, cursor: "pointer", fontSize: 12, textDecoration: "underline", padding: 0, flexShrink: 0 },
 
-  // states
-  stateBox: {
-    display: "flex",
-    flexDirection: "column" as const,
-    alignItems: "center",
-    gap: 10,
-    padding: "30px 0",
-    borderRadius: 14,
-    border: `1.5px dashed ${O.borderMid}`,
-    background: O.bgPage,
-  },
-  stateText: {
-    fontSize: 13,
-    color: O.textMuted,
-    margin: 0,
-  },
+  stateBox:  { display: "flex", flexDirection: "column" as const, alignItems: "center", gap: 10, padding: "30px 0", borderRadius: 14, border: `1.5px dashed ${O.borderMid}`, background: O.bgPage },
+  stateText: { fontSize: 13, color: O.textMuted, margin: 0 },
 };

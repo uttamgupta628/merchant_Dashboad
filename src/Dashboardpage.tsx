@@ -81,14 +81,14 @@ export default function DashboardPage({
         *, *::before, *::after { box-sizing: border-box; }
         html, body { margin: 0; padding: 0; overflow-x: hidden; }
 
-        /* Mobile hamburger button — always visible top-left */
         .mobile-menu-btn {
           display: none;
           position: fixed;
           top: 14px;
           left: 16px;
           z-index: 1100;
-          width: 40px; height: 40px;
+          width: 40px;
+          height: 40px;
           border-radius: 12px;
           background: #FFA629;
           border: none;
@@ -98,59 +98,76 @@ export default function DashboardPage({
           box-shadow: 0 4px 14px rgba(255,166,41,0.40);
           transition: transform 0.15s;
         }
-        .mobile-menu-btn:active { transform: scale(0.93); }
 
-        /* Sidebar overlay backdrop */
+        .mobile-menu-btn:active {
+          transform: scale(0.93);
+        }
+
         .sidebar-backdrop {
           display: none;
-          position: fixed; inset: 0; z-index: 1050;
+          position: fixed;
+          inset: 0;
+          z-index: 1050;
           background: rgba(0,0,0,0.45);
           backdrop-filter: blur(4px);
           -webkit-backdrop-filter: blur(4px);
         }
 
-        /* Sidebar drawer on mobile */
         .sidebar-drawer {
           transition: transform 0.32s cubic-bezier(0.4,0,0.2,1) !important;
         }
 
         @media (max-width: 768px) {
-          .mobile-menu-btn { display: flex; }
+          .mobile-menu-btn {
+            display: flex;
+          }
 
           .sidebar-drawer {
             position: fixed !important;
-            top: 0 !important; left: 0 !important; bottom: 0 !important;
+            top: 0 !important;
+            left: 0 !important;
+            bottom: 0 !important;
             z-index: 1060 !important;
             transform: translateX(-100%);
             width: 260px !important;
             min-width: 260px !important;
             max-width: 260px !important;
           }
+
           .sidebar-drawer.open {
             transform: translateX(0);
           }
-          .sidebar-backdrop.open { display: block; }
+
+          .sidebar-backdrop.open {
+            display: block;
+          }
 
           .dashboard-main {
             margin-left: 0 !important;
           }
+
           .dashboard-content {
             padding: 72px 16px 32px !important;
           }
-          /* Push topbar title right of hamburger */
+
           .topbar-inner {
             padding-left: 64px !important;
           }
         }
 
         @media (min-width: 769px) {
-          /* Desktop: show the collapse toggle inside sidebar */
-          .sidebar-collapse-btn { display: flex !important; }
+          .sidebar-collapse-btn {
+            display: flex !important;
+          }
         }
       `}</style>
 
       <div
-        style={{ display: "flex", minHeight: "100vh", background: "#F7F3EE" }}
+        style={{
+          display: "flex",
+          minHeight: "100vh",
+          background: "#F7F3EE",
+        }}
       >
         {/* Mobile backdrop */}
         <div
@@ -171,7 +188,7 @@ export default function DashboardPage({
           )}
         </button>
 
-        {/* Sidebar — desktop: inline; mobile: drawer */}
+        {/* Sidebar */}
         <div className={`sidebar-drawer${mobileOpen ? " open" : ""}`}>
           <Sidebar
             activeTab={activeTab}
@@ -180,8 +197,11 @@ export default function DashboardPage({
             onLogout={onLogout || (() => {})}
             collapsed={isMobile ? false : collapsed}
             onToggle={() => {
-              if (isMobile) setMobileOpen(false);
-              else setCollapsed((c) => !c);
+              if (isMobile) {
+                setMobileOpen(false);
+              } else {
+                setCollapsed((c) => !c);
+              }
             }}
           />
         </div>
@@ -205,14 +225,19 @@ export default function DashboardPage({
 
           <div
             className="dashboard-content"
-            style={{ padding: "82px 32px 40px", minHeight: "100vh" }}
+            style={{
+              padding: "82px 32px 40px",
+              minHeight: "100vh",
+            }}
           >
-            {/* Tabs that fetch their own data — no stats dependency */}
+            {/* Tabs that fetch their own data */}
             {activeTab === "dryCleaning" && <DryCleaningTab token={token} />}
             {activeTab === "subAccounts" && <SubAccountsTab />}
-            {activeTab === "daily"       && <DailyTab token={token} user={user} />}
+            {activeTab === "daily" && (
+              <DailyTab token={token} user={user} />
+            )}
 
-            {/* Tabs that depend on the stats hook */}
+            {/* Tabs that depend on stats hook */}
             {!["dryCleaning", "subAccounts", "daily"].includes(activeTab) &&
               (loading ? (
                 <Spinner />
@@ -227,9 +252,21 @@ export default function DashboardPage({
                       onPeriodChange={setPeriod}
                     />
                   )}
-                  {activeTab === "slots"    && <SlotsTab data={data} />}
-                  {activeTab === "bookings" && <BookingsTab data={data} />}
-                  {activeTab === "monthly"  && <MonthlyTab data={data} token={token} />}
+
+                  {activeTab === "slots" && <SlotsTab data={data} />}
+
+                  {activeTab === "bookings" && (
+                    <BookingsTab data={data} />
+                  )}
+
+                  {/* FIXED: Pass token to MonthlyTab */}
+                  {activeTab === "monthly" && (
+                    <MonthlyTab
+                      data={data}
+                      token={token}
+                      user={user}
+                    />
+                  )}
                 </>
               ) : null)}
           </div>
